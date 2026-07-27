@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Nitra entrepreneur platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profiles
+  - name: prototypes
+    description: AI prototypes
+  - name: feed
+    description: Creator feed
+  - name: conversations
+    description: Private messaging
+  - name: feedback
+    description: AI feedback
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +34,589 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Users ───────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: Search / list users
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Optional search term
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user (onboarding)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{username}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user profile
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user profile
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPatch"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{username}/prototypes:
+    get:
+      operationId: listUserPrototypes
+      tags: [users]
+      summary: Get all prototypes belonging to a user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of prototypes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prototype"
+
+  /users/{username}/stats:
+    get:
+      operationId: getUserStats
+      tags: [users]
+      summary: Get stats for a user's profile
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStats"
+
+  # ── Prototypes ──────────────────────────────────────────
+  /prototypes:
+    post:
+      operationId: createPrototype
+      tags: [prototypes]
+      summary: Create a new prototype
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrototypeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prototype"
+
+  /prototypes/{id}:
+    get:
+      operationId: getPrototype
+      tags: [prototypes]
+      summary: Get a single prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Prototype
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prototype"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updatePrototype
+      tags: [prototypes]
+      summary: Update a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrototypePatch"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prototype"
+    delete:
+      operationId: deletePrototype
+      tags: [prototypes]
+      summary: Delete a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /prototypes/{id}/publish:
+    post:
+      operationId: publishPrototype
+      tags: [prototypes]
+      summary: Publish a prototype to the feed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Published prototype
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prototype"
+
+  /prototypes/{id}/generate:
+    post:
+      operationId: generatePrototype
+      tags: [prototypes]
+      summary: Generate AI content for a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "200":
+          description: Updated prototype with generated content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prototype"
+
+  # ── Feed ────────────────────────────────────────────────
+  /feed:
+    get:
+      operationId: getFeed
+      tags: [feed]
+      summary: Get the public creator feed
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Search term
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Feed items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResponse"
+
+  /feed/stats:
+    get:
+      operationId: getFeedStats
+      tags: [feed]
+      summary: Get platform-level stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedStats"
+
+  # ── Conversations / Messaging ────────────────────────────
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [conversations]
+      summary: List conversations for a user
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [conversations]
+      summary: Start a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [conversations]
+      summary: Get messages in a conversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [conversations]
+      summary: Send a message
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  # ── AI Feedback ──────────────────────────────────────────
+  /feedback/investor:
+    post:
+      operationId: getInvestorFeedback
+      tags: [feedback]
+      summary: Get investor-mode AI feedback on a company idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "200":
+          description: Investor feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackResponse"
+
+  /feedback/nitra:
+    post:
+      operationId: getNitraFeedback
+      tags: [feedback]
+      summary: Get Nitra-mode AI feedback to improve a company idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "200":
+          description: Nitra feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    # ── User schemas ──────────────────────────────────────
+    User:
+      type: object
+      required: [id, username, createdAt]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        bio: { type: ["string", "null"] }
+        companyName: { type: ["string", "null"] }
+        companyBio: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    UserInput:
+      type: object
+      required: [username]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 30 }
+        bio: { type: string }
+        companyName: { type: string }
+        companyBio: { type: string }
+
+    UserPatch:
+      type: object
+      properties:
+        bio: { type: string }
+        companyName: { type: string }
+        companyBio: { type: string }
+        avatarUrl: { type: string }
+
+    UserStats:
+      type: object
+      required: [prototypeCount, publishedCount]
+      properties:
+        prototypeCount: { type: integer }
+        publishedCount: { type: integer }
+
+    # ── Prototype schemas ─────────────────────────────────
+    Prototype:
+      type: object
+      required: [id, userId, title, published, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        username: { type: ["string", "null"] }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        prompt: { type: ["string", "null"] }
+        generatedContent: { type: ["string", "null"] }
+        imageUrl: { type: ["string", "null"] }
+        published: { type: boolean }
+        category: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    PrototypeInput:
+      type: object
+      required: [title, userId]
+      properties:
+        userId: { type: integer }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        prompt: { type: string }
+        category: { type: string }
+
+    PrototypePatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        prompt: { type: string }
+        category: { type: string }
+        imageUrl: { type: string }
+
+    GenerateInput:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string, minLength: 1 }
+
+    # ── Feed schemas ──────────────────────────────────────
+    FeedResponse:
+      type: object
+      required: [items, total]
+      properties:
+        total: { type: integer }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Prototype"
+
+    FeedStats:
+      type: object
+      required: [totalPrototypes, totalEntrepreneurs, totalPublished]
+      properties:
+        totalPrototypes: { type: integer }
+        totalEntrepreneurs: { type: integer }
+        totalPublished: { type: integer }
+
+    # ── Conversation schemas ──────────────────────────────
+    Conversation:
+      type: object
+      required: [id, initiatorId, recipientId, createdAt]
+      properties:
+        id: { type: integer }
+        initiatorId: { type: integer }
+        recipientId: { type: integer }
+        initiatorUsername: { type: ["string", "null"] }
+        recipientUsername: { type: ["string", "null"] }
+        lastMessage: { type: ["string", "null"] }
+        lastMessageAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ConversationInput:
+      type: object
+      required: [initiatorId, recipientId]
+      properties:
+        initiatorId: { type: integer }
+        recipientId: { type: integer }
+
+    Message:
+      type: object
+      required: [id, conversationId, senderId, content, createdAt]
+      properties:
+        id: { type: integer }
+        conversationId: { type: integer }
+        senderId: { type: integer }
+        senderUsername: { type: ["string", "null"] }
+        content: { type: string }
+        createdAt: { type: string }
+
+    MessageInput:
+      type: object
+      required: [senderId, content]
+      properties:
+        senderId: { type: integer }
+        content: { type: string, minLength: 1 }
+
+    # ── Feedback schemas ──────────────────────────────────
+    FeedbackInput:
+      type: object
+      required: [companyName, description]
+      properties:
+        companyName: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        targetMarket: { type: string }
+        revenueModel: { type: string }
+
+    FeedbackResponse:
+      type: object
+      required: [verdict, summary, points]
+      properties:
+        verdict: { type: string }
+        summary: { type: string }
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedbackPoint"
+        score: { type: ["integer", "null"] }
+
+    FeedbackPoint:
+      type: object
+      required: [type, text]
+      properties:
+        type: { type: string }
+        text: { type: string }

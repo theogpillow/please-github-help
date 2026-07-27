@@ -1,0 +1,70 @@
+=== PRD: Nitra ===
+1. What it is:
+
+Nitra is an entrepreneur platform that helps people turn company ideas into prototypes, get feedback, and connect with investors and collaborators.
+
+2. Who it is for:
+
+Entrepreneurs who love creating companies, building apps, solving problems, and turning ideas into real projects.
+
+3. The problem:
+
+Entrepreneurs worry about whether their company or app idea can become successful and want a way to test, improve, and share their ideas.
+
+4. What it does:
+
+Create AI Prototypes
+Users describe their company or app idea with prompts, and Nitra creates a model showing what it could look like. Users can publish their prototypes to their profile.
+
+Explore the Creator Feed
+Users can view projects made by other entrepreneurs, search for videos, and discover new ideas.
+
+Build a Personal Profile
+Users can create a profile with their username, biography, company name, company biography, and published prototypes.
+
+Chat With People
+Users can privately message investors and possible collaborators, see conversations, and reach out to people they want to work with.
+
+Get AI Company Feedback
+Users can use Investor Mode to receive feedback on whether an investor might invest and why. Users can use Nitra Mode to improve their company, solve problems, and check if ideas could be realistic.
+
+5. Look and feel:
+Main design: White background with black letters.
+Special search bar features.
+Dark mode option: Black background with white letters.
+Vibe: Professional and innovative.
+6. Wow feature:
+
+The AI Prototype Maker — a tool that turns a user's written prompts into a visual model of their possible app or company.
+
+7. Done means:
+
+[ ] A user can create an AI prototype, publish it, and see it on their profile.
+
+[ ] A user can discover other entrepreneurs, search content, and privately message investors or collaborators.
+
+[ ] A user can receive AI feedback that helps improve their company idea.
+
+[ ] A user can switch between light mode and dark mode.
+
+[ ] A user can create a profile showing their company and projects.
+
+Main User Journey:
+User opens Nitra.
+User enters a username.
+User creates a company or app idea using the Prototype Maker.
+AI creates a prototype model.
+User publishes the prototype to their profile.
+Other entrepreneurs can discover it through the feed.
+User connects with investors or collaborators through private chat.
+User improves their idea using Nitra AI feedback.
+Core Navigation:
+
+Main Button: Prototype Maker
+
+Other sections:
+
+Feed
+AI Investor/Nitra Chat
+Private Messages
+Profile
