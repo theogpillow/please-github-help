@@ -12,7 +12,7 @@ import {
   GeneratePrototypeBody,
   GetFeedQueryParams,
 } from "@workspace/api-zod";
-import { generateAIContent } from "../lib/ai";
+import { generateAIContent, generatePrototypeWithImage } from "../lib/ai";
 
 const router: IRouter = Router();
 
@@ -118,16 +118,23 @@ router.post("/prototypes/:id/generate", async (req, res): Promise<void> => {
     return;
   }
 
-  const generated = await generateAIContent({
-    type: "prototype",
+  const result = await generatePrototypeWithImage({
     companyName: existing.title,
     description: existing.description ?? "",
     prompt: parsed.data.prompt,
   });
 
+  const updatePayload: Record<string, unknown> = {
+    generatedContent: result.text,
+    prompt: parsed.data.prompt,
+  };
+  if (result.imageBase64) {
+    updatePayload.imageUrl = `data:image/png;base64,${result.imageBase64}`;
+  }
+
   const [proto] = await db
     .update(prototypesTable)
-    .set({ generatedContent: generated, prompt: parsed.data.prompt })
+    .set(updatePayload)
     .where(eq(prototypesTable.id, params.data.id))
     .returning();
 

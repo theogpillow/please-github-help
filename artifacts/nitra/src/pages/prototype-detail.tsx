@@ -199,6 +199,25 @@ export default function PrototypeDetail() {
           </Card>
         )}
 
+        {/* Generated Image */}
+        {prototype.imageUrl && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Generated Image
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <img
+                src={prototype.imageUrl}
+                alt={`AI generated image for ${prototype.title}`}
+                className="w-full rounded-lg object-cover max-h-[512px]"
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Generated Content */}
         {prototype.generatedContent && (
           <Card>
