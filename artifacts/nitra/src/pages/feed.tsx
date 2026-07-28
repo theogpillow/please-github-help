@@ -4,6 +4,7 @@ import {
   Search, MessageSquare, Heart, Bookmark, Share2,
   Sparkles, X, ExternalLink, TrendingUp, Users
 } from 'lucide-react';
+import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,8 +30,19 @@ function getGradient(id: number) {
 
 function FeedCard({ prototype, index }: { prototype: Prototype; index: number }) {
   const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => isSaved(prototype.id));
   const [, setLocation] = useLocation();
+
+  const handleSave = () => {
+    if (saved) {
+      unsavePrototype(prototype.id);
+      setSaved(false);
+    } else {
+      savePrototype(prototype);
+      setSaved(true);
+      setLocation('/saved');
+    }
+  };
 
   return (
     <article
@@ -54,6 +66,19 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
             {prototype.description}
           </p>
         )}
+
+        {/* Save button */}
+        <button
+          onClick={handleSave}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-fit ${
+            saved
+              ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
+              : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border'
+          }`}
+        >
+          <Bookmark className={`h-4 w-4 ${saved ? 'fill-primary' : ''}`} />
+          {saved ? 'Saved' : 'Save'}
+        </button>
 
         {prototype.username && (
           <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
@@ -142,7 +167,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           icon={<Bookmark className={`h-5 w-5 transition-colors ${saved ? 'fill-primary text-primary' : ''}`} />}
           label="Save"
           active={saved}
-          onClick={() => setSaved(v => !v)}
+          onClick={handleSave}
         />
         <ActionBtn
           icon={<Share2 className="h-5 w-5" />}
@@ -168,7 +193,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
         <MobileActionBtn
           icon={<Bookmark className={`h-5 w-5 ${saved ? 'fill-primary text-primary' : ''}`} />}
           label="Save"
-          onClick={() => setSaved(v => !v)}
+          onClick={handleSave}
         />
         <Link href={`/prototype/${prototype.id}`}>
           <MobileActionBtn

@@ -13,6 +13,7 @@ import PrototypeDetail from '@/pages/prototype-detail';
 import Profile from '@/pages/profile';
 import Messages from '@/pages/messages';
 import Feedback from '@/pages/feedback';
+import Saved from '@/pages/saved';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -70,6 +71,11 @@ function Router() {
         <Route path="/feedback">
           <AuthGuard>
             <Feedback />
+          </AuthGuard>
+        </Route>
+        <Route path="/saved">
+          <AuthGuard>
+            <Saved />
           </AuthGuard>
         </Route>
         <Route component={NotFound} />
