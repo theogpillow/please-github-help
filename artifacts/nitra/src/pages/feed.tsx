@@ -1,53 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
-import { Search, TrendingUp, Users, Sparkles, MessageSquare, Lightbulb, User, Plus } from 'lucide-react';
+import { Search, TrendingUp, Users, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PrototypeCard } from '@/components/prototype-card';
 import { useGetFeed, useGetFeedStats } from '@workspace/api-client-react';
-import { getCurrentUser } from '@/lib/auth';
 
 export default function Feed() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: feedData, isLoading: feedLoading } = useGetFeed({ q: searchQuery || undefined });
   const { data: stats, isLoading: statsLoading } = useGetFeedStats();
-  const currentUser = getCurrentUser();
 
   return (
     <div className="min-h-[100dvh] pt-20 pb-24 md:pb-8 px-4 md:px-6 animate-fade-in">
-      <div className="max-w-7xl mx-auto space-y-6">
-
-        {/* Quick Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link href="/prototype/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Prototype
-            </Button>
-          </Link>
-          {currentUser && (
-            <Link href={`/profile/${currentUser.username}`}>
-              <Button variant="outline" className="gap-2">
-                <User className="h-4 w-4" />
-                My Profile
-              </Button>
-            </Link>
-          )}
-          <Link href="/feedback">
-            <Button variant="outline" className="gap-2">
-              <Lightbulb className="h-4 w-4" />
-              AI Feedback
-            </Button>
-          </Link>
-          <Link href="/messages">
-            <Button variant="outline" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Messages
-            </Button>
-          </Link>
-        </div>
+      <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Header */}
         <div className="space-y-6">
