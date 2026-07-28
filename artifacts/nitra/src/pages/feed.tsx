@@ -67,17 +67,13 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           </p>
         )}
 
-        {/* Save button */}
+        {/* Saved Videos button */}
         <button
-          onClick={handleSave}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-fit ${
-            saved
-              ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
-              : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border'
-          }`}
+          onClick={() => setLocation('/saved')}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-fit bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
         >
-          <Bookmark className={`h-4 w-4 ${saved ? 'fill-primary' : ''}`} />
-          {saved ? 'Saved' : 'Save'}
+          <Bookmark className="h-4 w-4" />
+          Saved Videos
         </button>
 
         {prototype.username && (
@@ -164,9 +160,10 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           onClick={() => setLocation('/messages')}
         />
         <ActionBtn
-          icon={<Bookmark className="h-5 w-5" />}
-          label="Saved Videos"
-          onClick={() => setLocation('/saved')}
+          icon={<Bookmark className={`h-5 w-5 transition-colors ${saved ? 'fill-primary text-primary' : ''}`} />}
+          label="Save"
+          active={saved}
+          onClick={handleSave}
         />
         <ActionBtn
           icon={<Share2 className="h-5 w-5" />}
@@ -190,9 +187,9 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           onClick={() => setLocation('/messages')}
         />
         <MobileActionBtn
-          icon={<Bookmark className="h-5 w-5" />}
-          label="Saved Videos"
-          onClick={() => setLocation('/saved')}
+          icon={<Bookmark className={`h-5 w-5 ${saved ? 'fill-primary text-primary' : ''}`} />}
+          label="Save"
+          onClick={handleSave}
         />
         <Link href={`/prototype/${prototype.id}`}>
           <MobileActionBtn
