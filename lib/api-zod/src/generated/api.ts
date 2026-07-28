@@ -144,6 +144,7 @@ export const ListUserPrototypesResponseItem = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -176,7 +177,8 @@ export const CreatePrototypeBody = zod.object({
   "title": zod.string().min(1),
   "description": zod.string().optional(),
   "prompt": zod.string().optional(),
-  "category": zod.string().optional()
+  "category": zod.string().optional(),
+  "mediaUrls": zod.string().optional()
 })
 
 export const CreatePrototypeResponse = zod.object({
@@ -188,6 +190,7 @@ export const CreatePrototypeResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -211,6 +214,7 @@ export const GetPrototypeResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -233,7 +237,8 @@ export const UpdatePrototypeBody = zod.object({
   "description": zod.string().optional(),
   "prompt": zod.string().optional(),
   "category": zod.string().optional(),
-  "imageUrl": zod.string().optional()
+  "imageUrl": zod.string().optional(),
+  "mediaUrls": zod.string().optional()
 })
 
 export const UpdatePrototypeResponse = zod.object({
@@ -245,6 +250,7 @@ export const UpdatePrototypeResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -278,6 +284,7 @@ export const PublishPrototypeResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -308,6 +315,7 @@ export const GeneratePrototypeResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -338,6 +346,7 @@ export const GetFeedResponse = zod.object({
   "prompt": zod.string().nullish(),
   "generatedContent": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),

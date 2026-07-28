@@ -20,6 +20,8 @@ export interface Prototype {
   generatedContent?: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  /** @nullable */
+  mediaUrls?: string | null;
   published: boolean;
   /** @nullable */
   category?: string | null;

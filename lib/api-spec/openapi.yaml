@@ -543,6 +543,7 @@ components:
         prompt: { type: ["string", "null"] }
         generatedContent: { type: ["string", "null"] }
         imageUrl: { type: ["string", "null"] }
+        mediaUrls: { type: ["string", "null"] }
         published: { type: boolean }
         category: { type: ["string", "null"] }
         createdAt: { type: string }
@@ -557,6 +558,7 @@ components:
         description: { type: string }
         prompt: { type: string }
         category: { type: string }
+        mediaUrls: { type: string }
 
     PrototypePatch:
       type: object
@@ -566,6 +568,7 @@ components:
         prompt: { type: string }
         category: { type: string }
         imageUrl: { type: string }
+        mediaUrls: { type: string }
 
     GenerateInput:
       type: object

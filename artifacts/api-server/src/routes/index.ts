@@ -4,6 +4,7 @@ import usersRouter from "./users";
 import prototypesRouter from "./prototypes";
 import conversationsRouter from "./conversations";
 import feedbackRouter from "./feedback";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(usersRouter);
 router.use(prototypesRouter);
 router.use(conversationsRouter);
 router.use(feedbackRouter);
+router.use("/upload", uploadRouter);
 
 export default router;

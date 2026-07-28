@@ -73,6 +73,8 @@ export interface Prototype {
   generatedContent?: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  /** @nullable */
+  mediaUrls?: string | null;
   published: boolean;
   /** @nullable */
   category?: string | null;
@@ -87,6 +89,7 @@ export interface PrototypeInput {
   description?: string;
   prompt?: string;
   category?: string;
+  mediaUrls?: string;
 }
 
 export interface PrototypePatch {
@@ -96,6 +99,7 @@ export interface PrototypePatch {
   prompt?: string;
   category?: string;
   imageUrl?: string;
+  mediaUrls?: string;
 }
 
 export interface GenerateInput {

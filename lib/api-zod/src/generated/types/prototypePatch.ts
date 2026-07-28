@@ -13,4 +13,5 @@ export interface PrototypePatch {
   prompt?: string;
   category?: string;
   imageUrl?: string;
+  mediaUrls?: string;
 }

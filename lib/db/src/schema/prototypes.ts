@@ -10,6 +10,7 @@ export const prototypesTable = pgTable("prototypes", {
   prompt: text("prompt"),
   generatedContent: text("generated_content"),
   imageUrl: text("image_url"),
+  mediaUrls: text("media_urls"), // JSON array of uploaded media URLs
   published: boolean("published").notNull().default(false),
   category: text("category"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
