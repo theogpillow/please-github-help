@@ -40,7 +40,6 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
     } else {
       savePrototype(prototype);
       setSaved(true);
-      setLocation('/saved');
     }
   };
 
