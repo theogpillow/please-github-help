@@ -164,10 +164,9 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           onClick={() => setLocation('/messages')}
         />
         <ActionBtn
-          icon={<Bookmark className={`h-5 w-5 transition-colors ${saved ? 'fill-primary text-primary' : ''}`} />}
-          label="Save"
-          active={saved}
-          onClick={handleSave}
+          icon={<Bookmark className="h-5 w-5" />}
+          label="Saved Videos"
+          onClick={() => setLocation('/saved')}
         />
         <ActionBtn
           icon={<Share2 className="h-5 w-5" />}
@@ -191,9 +190,9 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           onClick={() => setLocation('/messages')}
         />
         <MobileActionBtn
-          icon={<Bookmark className={`h-5 w-5 ${saved ? 'fill-primary text-primary' : ''}`} />}
-          label="Save"
-          onClick={handleSave}
+          icon={<Bookmark className="h-5 w-5" />}
+          label="Saved Videos"
+          onClick={() => setLocation('/saved')}
         />
         <Link href={`/prototype/${prototype.id}`}>
           <MobileActionBtn
