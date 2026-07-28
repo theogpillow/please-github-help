@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Plus, MessageSquare } from 'lucide-react';
+import { Send, Plus, MessageSquare, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ export default function Messages() {
   const [messageText, setMessageText] = useState('');
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: conversations, isLoading: conversationsLoading } = useListConversations(
     currentUser ? { userId: currentUser.id } : undefined as any
@@ -32,9 +33,10 @@ export default function Messages() {
     selectedConversation?.id || 0,
     { query: { enabled: !!selectedConversation, queryKey: getListMessagesQueryKey(selectedConversation?.id || 0) } }
   );
-  const { data: users, isLoading: usersLoading } = useListUsers(undefined, {
-    query: { enabled: isNewConvoOpen, queryKey: getListUsersQueryKey() },
-  });
+  const { data: searchResults, isFetching: searchFetching } = useListUsers(
+    searchTerm.trim() ? { q: searchTerm.trim() } : undefined,
+    { query: { enabled: !!searchTerm.trim(), queryKey: getListUsersQueryKey(searchTerm.trim() ? { q: searchTerm.trim() } : undefined) } }
+  );
 
   const sendMessage = useSendMessage();
   const createConversation = useCreateConversation();
@@ -91,6 +93,7 @@ export default function Messages() {
           setIsNewConvoOpen(false);
           setSelectedConversation(newConvo);
           setSelectedUserId(null);
+          setSearchTerm('');
         },
         onError: () => {
           toast({
@@ -142,35 +145,62 @@ export default function Messages() {
                       <DialogTitle>New Conversation</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
-                      {usersLoading ? (
-                        <div className="space-y-2">
-                          {[...Array(3)].map((_, i) => (
-                            <Skeleton key={i} className="h-12" />
-                          ))}
+                      {/* Search bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          data-testid="input-user-search"
+                          placeholder="Search by username..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setSelectedUserId(null);
+                          }}
+                          className="pl-9"
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* Results */}
+                      {searchTerm.trim() && (
+                        <div className="min-h-[3rem]">
+                          {searchFetching ? (
+                            <Skeleton className="h-14 w-full" />
+                          ) : searchResults && searchResults.filter((u) => u.id !== currentUser.id).length > 0 ? (
+                            <div className="space-y-2">
+                              {searchResults
+                                .filter((u) => u.id !== currentUser.id)
+                                .map((user) => (
+                                  <button
+                                    key={user.id}
+                                    data-testid={`button-user-${user.username}`}
+                                    onClick={() => setSelectedUserId(user.id)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                                      selectedUserId === user.id
+                                        ? 'bg-primary text-primary-foreground border-primary'
+                                        : 'hover:bg-muted border-transparent'
+                                    }`}
+                                  >
+                                    <UserAvatar username={user.username} className="h-8 w-8" />
+                                    <div className="text-left">
+                                      <p className="font-medium">{user.username}</p>
+                                      {user.companyName && (
+                                        <p className={`text-xs ${selectedUserId === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                                          {user.companyName}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-3">
+                              Username does not exist
+                            </p>
+                          )}
                         </div>
-                      ) : users ? (
-                        <ScrollArea className="h-64">
-                          <div className="space-y-2">
-                            {users
-                              .filter((u) => u.id !== currentUser.id)
-                              .map((user) => (
-                                <button
-                                  key={user.id}
-                                  data-testid={`button-user-${user.username}`}
-                                  onClick={() => setSelectedUserId(user.id)}
-                                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                                    selectedUserId === user.id
-                                      ? 'bg-primary text-primary-foreground border-primary'
-                                      : 'hover:bg-muted'
-                                  }`}
-                                >
-                                  <UserAvatar username={user.username} className="h-8 w-8" />
-                                  <span className="font-medium">{user.username}</span>
-                                </button>
-                              ))}
-                          </div>
-                        </ScrollArea>
-                      ) : null}
+                      )}
+
                       <Button
                         data-testid="button-start-conversation"
                         onClick={handleCreateConversation}
