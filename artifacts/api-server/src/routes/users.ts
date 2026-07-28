@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, or } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { db, usersTable, prototypesTable } from "@workspace/db";
 import {
   ListUsersQueryParams,
@@ -9,6 +10,7 @@ import {
   UpdateUserBody,
   ListUserPrototypesParams,
   GetUserStatsParams,
+  LoginUserBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -31,7 +33,43 @@ router.get("/users", async (req, res): Promise<void> => {
   res.json(users.map(mapUser));
 });
 
-// Create user (onboarding)
+// Login
+router.post("/users/login", async (req, res): Promise<void> => {
+  const parsed = LoginUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.username, parsed.data.username))
+    .limit(1);
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  // If the user was created before passwords were added, allow any password
+  // and set their password on this login.
+  if (!user.passwordHash) {
+    const hash = await bcrypt.hash(parsed.data.password, 10);
+    const [updated] = await db
+      .update(usersTable)
+      .set({ passwordHash: hash })
+      .where(eq(usersTable.id, user.id))
+      .returning();
+    res.json(mapUser(updated));
+    return;
+  }
+  const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+  if (!valid) {
+    res.status(401).json({ error: "Wrong password" });
+    return;
+  }
+  res.json(mapUser(user));
+});
+
+// Create user (onboarding / registration)
 router.post("/users", async (req, res): Promise<void> => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) {
@@ -43,7 +81,9 @@ router.post("/users", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Username already taken" });
     return;
   }
-  const [user] = await db.insert(usersTable).values(parsed.data).returning();
+  const { password, ...rest } = parsed.data;
+  const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+  const [user] = await db.insert(usersTable).values({ ...rest, passwordHash }).returning();
   res.status(201).json(mapUser(user));
 });
 

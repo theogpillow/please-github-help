@@ -19,6 +19,7 @@ export * from './getFeedParams';
 export * from './healthStatus';
 export * from './listConversationsParams';
 export * from './listUsersParams';
+export * from './loginInput';
 export * from './message';
 export * from './messageInput';
 export * from './prototype';

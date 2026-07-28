@@ -12,6 +12,8 @@ export interface UserInput {
      * @maxLength 30
      */
   username: string;
+  /** @minLength 1 */
+  password: string;
   bio?: string;
   companyName?: string;
   companyBio?: string;

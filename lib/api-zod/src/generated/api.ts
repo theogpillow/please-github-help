@@ -42,14 +42,39 @@ export const createUserBodyUsernameMax = 30;
 
 
 
+
 export const CreateUserBody = zod.object({
   "username": zod.string().min(1).max(createUserBodyUsernameMax),
+  "password": zod.string().min(1),
   "bio": zod.string().optional(),
   "companyName": zod.string().optional(),
   "companyBio": zod.string().optional()
 })
 
 export const CreateUserResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "bio": zod.string().nullish(),
+  "companyName": zod.string().nullish(),
+  "companyBio": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Log in with username and password
+ */
+
+
+
+
+export const LoginUserBody = zod.object({
+  "username": zod.string().min(1),
+  "password": zod.string().min(1)
+})
+
+export const LoginUserResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "bio": zod.string().nullish(),
