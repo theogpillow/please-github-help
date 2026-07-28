@@ -2,6 +2,21 @@
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
+
+/* TikTok-style snap feed */
+.feed-snap-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.feed-snap-container::-webkit-scrollbar {
+  display: none;
+}
+.feed-snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: calc(100dvh - 4rem - 41px);
+  flex-shrink: 0;
+}
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
