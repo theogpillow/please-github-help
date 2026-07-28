@@ -5,6 +5,7 @@ import {
   Sparkles, X, ExternalLink, TrendingUp, Users
 } from 'lucide-react';
 import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
+import { FollowButton } from '@/components/follow-button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,10 +79,11 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
         {prototype.username && (
           <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
             <UserAvatar username={prototype.username} className="h-7 w-7" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">@{prototype.username}</p>
               <p className="text-xs text-muted-foreground">{formatRelativeTime(prototype.createdAt)}</p>
             </div>
+            <FollowButton username={prototype.username} size="sm" />
           </div>
         )}
       </div>
@@ -150,10 +152,11 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
                 <p className="text-white/80 text-sm mt-2 line-clamp-2">{prototype.description}</p>
               )}
               {prototype.username && (
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <UserAvatar username={prototype.username} className="h-6 w-6 ring-1 ring-white/40" />
                   <span className="text-white text-sm font-medium">@{prototype.username}</span>
                   <span className="text-white/50 text-xs">· {formatRelativeTime(prototype.createdAt)}</span>
+                  <FollowButton username={prototype.username} size="sm" className="!border-white/40 !bg-white/20 !text-white hover:!bg-white/30 backdrop-blur-sm" />
                 </div>
               )}
             </div>

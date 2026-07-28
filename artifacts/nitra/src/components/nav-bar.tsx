@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Home, Sparkles, MessageSquare, User, Lightbulb } from 'lucide-react';
+import { Home, Sparkles, MessageSquare, User, Lightbulb, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getCurrentUser } from '@/lib/auth';
@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 const navItems = [
   { path: '/feed', label: 'Feed', icon: Home },
   { path: '/prototype/new', label: 'Create', icon: Sparkles, primary: true },
+  { path: '/search', label: 'Search', icon: Search },
   { path: '/feedback', label: 'Feedback', icon: Lightbulb },
   { path: '/messages', label: 'Messages', icon: MessageSquare },
 ];
