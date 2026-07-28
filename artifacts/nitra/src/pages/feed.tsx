@@ -156,7 +156,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
         <ActionBtn
           icon={<MessageSquare className="h-5 w-5" />}
           label="Chat"
-          onClick={() => setLocation('/messages')}
+          onClick={() => prototype.username && setLocation(`/messages?with=${prototype.username}`)}
         />
         <ActionBtn
           icon={<Bookmark className={`h-5 w-5 transition-colors ${saved ? 'fill-primary text-primary' : ''}`} />}
@@ -183,7 +183,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
         <MobileActionBtn
           icon={<MessageSquare className="h-5 w-5" />}
           label="Chat"
-          onClick={() => setLocation('/messages')}
+          onClick={() => prototype.username && setLocation(`/messages?with=${prototype.username}`)}
         />
         <MobileActionBtn
           icon={<Bookmark className={`h-5 w-5 ${saved ? 'fill-primary text-primary' : ''}`} />}

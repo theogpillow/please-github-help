@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearch } from 'wouter';
 import { Send, Plus, MessageSquare, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UserAvatar } from '@/components/user-avatar';
-import { useListConversations, useListMessages, useSendMessage, useCreateConversation, useListUsers, getListConversationsQueryKey, getListMessagesQueryKey, getListUsersQueryKey } from '@workspace/api-client-react';
+import { useListConversations, useListMessages, useSendMessage, useCreateConversation, useListUsers, useGetUser, getListConversationsQueryKey, getListMessagesQueryKey, getListUsersQueryKey, getGetUserQueryKey } from '@workspace/api-client-react';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
@@ -19,15 +20,24 @@ export default function Messages() {
   const queryClient = useQueryClient();
   const currentUser = getCurrentUser();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const search = useSearch();
+  const withUsername = new URLSearchParams(search).get('with');
 
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messageText, setMessageText] = useState('');
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [autoStarted, setAutoStarted] = useState(false);
 
   const { data: conversations, isLoading: conversationsLoading } = useListConversations(
     currentUser ? { userId: currentUser.id } : undefined as any
+  );
+
+  // Look up the user from the ?with= param
+  const { data: withUser } = useGetUser(
+    withUsername ?? '',
+    { query: { enabled: !!withUsername, queryKey: getGetUserQueryKey(withUsername ?? '') } }
   );
   const { data: messages, isLoading: messagesLoading } = useListMessages(
     selectedConversation?.id || 0,
@@ -40,6 +50,37 @@ export default function Messages() {
 
   const sendMessage = useSendMessage();
   const createConversation = useCreateConversation();
+
+  // Auto-open or create conversation when arriving via ?with=username
+  useEffect(() => {
+    if (!withUser || !currentUser || !conversations || autoStarted) return;
+    if (withUser.id === currentUser.id) return; // can't chat yourself
+
+    setAutoStarted(true);
+
+    // Check if a conversation with this user already exists
+    const existing = conversations.find(
+      c => c.initiatorId === withUser.id || c.recipientId === withUser.id
+    );
+    if (existing) {
+      setSelectedConversation(existing);
+      return;
+    }
+
+    // Create a new conversation
+    createConversation.mutate(
+      { data: { initiatorId: currentUser.id, recipientId: withUser.id } },
+      {
+        onSuccess: (newConvo) => {
+          queryClient.invalidateQueries({ queryKey: getListConversationsQueryKey({ userId: currentUser.id }) });
+          setSelectedConversation(newConvo);
+        },
+        onError: () => {
+          toast({ title: 'Could not start conversation', variant: 'destructive' });
+        },
+      }
+    );
+  }, [withUser, currentUser, conversations, autoStarted]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
