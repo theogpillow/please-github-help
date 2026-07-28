@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useParams } from 'wouter';
-import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users } from 'lucide-react';
+import { useParams, useLocation } from 'wouter';
+import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,13 +15,14 @@ import {
   useGetFollowCounts, useCheckFollowStatus, useFollowUser, useUnfollowUser,
   getGetUserQueryKey, getGetFollowCountsQueryKey, getCheckFollowStatusQueryKey,
 } from '@workspace/api-client-react';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, clearCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function Profile() {
   const params = useParams();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const currentUser = getCurrentUser();
@@ -48,6 +49,11 @@ export default function Profile() {
 
   const isOwnProfile = currentUser && user && currentUser.id === user.id;
   const isFollowing = followStatus?.following ?? false;
+
+  const handleLogout = () => {
+    clearCurrentUser();
+    setLocation('/');
+  };
 
   const invalidateFollow = () => {
     queryClient.invalidateQueries({ queryKey: getGetFollowCountsQueryKey(username) });
@@ -260,6 +266,17 @@ export default function Profile() {
         </div>
 
       </div>
+
+      {/* Logout — fixed bottom-right, own profile only */}
+      {isOwnProfile && (
+        <button
+          onClick={handleLogout}
+          className="fixed bottom-24 md:bottom-6 right-4 md:right-6 flex items-center gap-2 px-4 py-2.5 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors shadow-sm z-40"
+        >
+          <LogOut className="h-4 w-4" />
+          Log out
+        </button>
+      )}
     </div>
   );
 }
