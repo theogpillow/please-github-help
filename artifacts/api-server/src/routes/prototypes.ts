@@ -210,6 +210,7 @@ function mapPrototype(p: typeof prototypesTable.$inferSelect, username: string |
     prompt: p.prompt,
     generatedContent: p.generatedContent,
     imageUrl: p.imageUrl,
+    mediaUrls: p.mediaUrls,
     published: p.published,
     category: p.category,
     createdAt: p.createdAt.toISOString(),

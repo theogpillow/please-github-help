@@ -88,23 +88,47 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
 
       {/* ── Center: Image / Visual ─────────────────────── */}
       <div className="relative flex-1 overflow-hidden group">
-        {prototype.imageUrl ? (
-          <img
-            src={prototype.imageUrl}
-            alt={prototype.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${getGradient(prototype.id)} flex flex-col items-center justify-center gap-4 p-8`}>
-            <Sparkles className="h-16 w-16 text-white/50" />
-            <div className="text-center">
-              <p className="text-2xl font-bold text-white">{prototype.title}</p>
-              {prototype.category && (
-                <p className="text-white/70 mt-2 text-sm">{prototype.category}</p>
-              )}
+        {(() => {
+          // Prefer AI-generated imageUrl, then first uploaded media
+          const uploadedMedia: string[] = (() => {
+            try { return prototype.mediaUrls ? JSON.parse(prototype.mediaUrls) : []; } catch { return []; }
+          })();
+          const primaryMedia = prototype.imageUrl || uploadedMedia[0] || null;
+          const isVideo = primaryMedia && !prototype.imageUrl && /\.(mp4|webm|mov)$/i.test(primaryMedia);
+
+          if (primaryMedia && isVideo) {
+            return (
+              <video
+                src={primaryMedia}
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            );
+          }
+          if (primaryMedia) {
+            return (
+              <img
+                src={primaryMedia}
+                alt={prototype.title}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            );
+          }
+          return (
+            <div className={`w-full h-full bg-gradient-to-br ${getGradient(prototype.id)} flex flex-col items-center justify-center gap-4 p-8`}>
+              <Sparkles className="h-16 w-16 text-white/50" />
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">{prototype.title}</p>
+                {prototype.category && (
+                  <p className="text-white/70 mt-2 text-sm">{prototype.category}</p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Overlay gradient for readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
