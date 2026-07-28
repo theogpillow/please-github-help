@@ -5,6 +5,7 @@ import prototypesRouter from "./prototypes";
 import conversationsRouter from "./conversations";
 import feedbackRouter from "./feedback";
 import uploadRouter from "./upload";
+import followsRouter from "./follows";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(prototypesRouter);
 router.use(conversationsRouter);
 router.use(feedbackRouter);
 router.use("/upload", uploadRouter);
+router.use(followsRouter);
 
 export default router;

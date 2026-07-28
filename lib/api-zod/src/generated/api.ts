@@ -167,6 +167,64 @@ export const GetUserStatsResponse = zod.object({
 
 
 /**
+ * @summary Get follower and following counts for a user
+ */
+export const GetFollowCountsParams = zod.object({
+  "username": zod.coerce.string()
+})
+
+export const GetFollowCountsResponse = zod.object({
+  "followers": zod.number(),
+  "following": zod.number()
+})
+
+
+/**
+ * @summary Check if a viewer is following this user
+ */
+export const CheckFollowStatusParams = zod.object({
+  "username": zod.coerce.string(),
+  "viewerId": zod.coerce.number()
+})
+
+export const CheckFollowStatusResponse = zod.object({
+  "following": zod.boolean()
+})
+
+
+/**
+ * @summary Follow a user
+ */
+export const FollowUserParams = zod.object({
+  "username": zod.coerce.string()
+})
+
+export const FollowUserBody = zod.object({
+  "followerId": zod.number()
+})
+
+export const FollowUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Unfollow a user
+ */
+export const UnfollowUserParams = zod.object({
+  "username": zod.coerce.string()
+})
+
+export const UnfollowUserBody = zod.object({
+  "followerId": zod.number()
+})
+
+export const UnfollowUserResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary Create a new prototype
  */
 

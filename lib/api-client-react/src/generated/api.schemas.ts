@@ -59,6 +59,23 @@ export interface UserStats {
   publishedCount: number;
 }
 
+export interface FollowCounts {
+  followers: number;
+  following: number;
+}
+
+export interface IsFollowingResponse {
+  following: boolean;
+}
+
+export interface FollowInput {
+  followerId: number;
+}
+
+export interface OkResponse {
+  ok: boolean;
+}
+
 export interface Prototype {
   id: number;
   userId: number;

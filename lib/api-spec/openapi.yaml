@@ -194,6 +194,92 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserStats"
 
+  /users/{username}/follow-counts:
+    get:
+      operationId: getFollowCounts
+      tags: [users]
+      summary: Get follower and following counts for a user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Follow counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowCounts"
+
+  /users/{username}/is-following/{viewerId}:
+    get:
+      operationId: checkFollowStatus
+      tags: [users]
+      summary: Check if a viewer is following this user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+        - in: path
+          name: viewerId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IsFollowingResponse"
+
+  /users/{username}/follow:
+    post:
+      operationId: followUser
+      tags: [users]
+      summary: Follow a user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+    delete:
+      operationId: unfollowUser
+      tags: [users]
+      summary: Unfollow a user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
   # ── Prototypes ──────────────────────────────────────────
   /prototypes:
     post:
@@ -529,6 +615,31 @@ components:
       properties:
         prototypeCount: { type: integer }
         publishedCount: { type: integer }
+
+    FollowCounts:
+      type: object
+      required: [followers, following]
+      properties:
+        followers: { type: integer }
+        following: { type: integer }
+
+    IsFollowingResponse:
+      type: object
+      required: [following]
+      properties:
+        following: { type: boolean }
+
+    FollowInput:
+      type: object
+      required: [followerId]
+      properties:
+        followerId: { type: integer }
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
 
     # ── Prototype schemas ─────────────────────────────────
     Prototype:
