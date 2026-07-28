@@ -142,6 +142,34 @@ router.post("/prototypes/:id/generate", async (req, res): Promise<void> => {
   res.json(mapPrototype(proto, user?.username ?? null));
 });
 
+// Seeded pseudo-random (mulberry32) — same seed → same order within a session
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function algorithmicScore(
+  p: typeof prototypesTable.$inferSelect,
+  rand: () => number,
+  nowMs: number,
+): number {
+  const ageHours = (nowMs - new Date(p.createdAt).getTime()) / 3_600_000;
+  // Recency: score decays over ~168 hours (1 week), posts < 24h get big boost
+  const recencyScore = 1 / (1 + ageHours / 24);
+  // Media bonus: posts with an image or uploaded media rank higher
+  const hasMedia = p.imageUrl || p.mediaUrls ? 1.4 : 1.0;
+  // Description bonus: posts with description rank higher
+  const hasDesc = p.description ? 1.1 : 1.0;
+  // Random salt: ±30% so each page load shuffles things up
+  const randomSalt = 0.7 + rand() * 0.6;
+
+  return recencyScore * hasMedia * hasDesc * randomSalt;
+}
+
 // Get feed
 router.get("/feed", async (req, res): Promise<void> => {
   const parsed = GetFeedQueryParams.safeParse(req.query);
@@ -158,20 +186,27 @@ router.get("/feed", async (req, res): Promise<void> => {
       )
     : eq(prototypesTable.published, true);
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`cast(count(*) as integer)` })
-    .from(prototypesTable)
-    .where(baseWhere);
-
-  const protos = await db
+  // Fetch all published posts (or all matching search), then rank in JS
+  const allProtos = await db
     .select()
     .from(prototypesTable)
     .where(baseWhere)
-    .orderBy(desc(prototypesTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+    .orderBy(desc(prototypesTable.createdAt));
 
-  const userIds = [...new Set(protos.map((p) => p.userId))];
+  const total = allProtos.length;
+
+  // New seed every request so the order varies on each refresh
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const rand = mulberry32(seed);
+  const nowMs = Date.now();
+
+  const ranked = allProtos
+    .map((p) => ({ p, score: algorithmicScore(p, rand, nowMs) }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ p }) => p)
+    .slice(offset, offset + limit);
+
+  const userIds = [...new Set(ranked.map((p) => p.userId))];
   const users =
     userIds.length > 0
       ? await db.select({ id: usersTable.id, username: usersTable.username }).from(usersTable)
@@ -179,8 +214,8 @@ router.get("/feed", async (req, res): Promise<void> => {
   const userMap = Object.fromEntries(users.map((u) => [u.id, u.username]));
 
   res.json({
-    total: count,
-    items: protos.map((p) => mapPrototype(p, userMap[p.userId] ?? null)),
+    total,
+    items: ranked.map((p) => mapPrototype(p, userMap[p.userId] ?? null)),
   });
 });
 
