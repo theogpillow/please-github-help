@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Home, Sparkles, MessageSquare, User, Lightbulb, Search, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,11 +16,34 @@ const navItems = [
 export function NavBar() {
   const [location] = useLocation();
   const currentUser = getCurrentUser();
+  const desktopRef = useRef<HTMLElement>(null);
+  const mobileRef = useRef<HTMLElement>(null);
+
+  // Force a repaint when the app is foregrounded — fixes iOS Safari "fixed element
+  // disappears after backgrounding" caused by backdrop-blur GPU layer eviction.
+  useEffect(() => {
+    const repaint = () => {
+      if (document.visibilityState !== 'visible') return;
+      [desktopRef.current, mobileRef.current].forEach((el) => {
+        if (!el) return;
+        el.style.display = 'none';
+        // Reading offsetHeight forces a synchronous reflow before restoring display.
+        void el.offsetHeight;
+        el.style.display = '';
+      });
+    };
+    document.addEventListener('visibilitychange', repaint);
+    window.addEventListener('pageshow', repaint);
+    return () => {
+      document.removeEventListener('visibilitychange', repaint);
+      window.removeEventListener('pageshow', repaint);
+    };
+  }, []);
 
   return (
     <>
       {/* Desktop nav */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+      <nav ref={desktopRef} className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border transform-gpu">
         <div className="max-w-7xl mx-auto w-full px-6 h-16 flex items-center justify-between">
           <Link href="/feed" className="flex items-center gap-2 text-xl font-bold font-serif">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -90,7 +114,7 @@ export function NavBar() {
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border">
+      <nav ref={mobileRef} className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border transform-gpu">
         <div className="flex items-center justify-around px-2 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
