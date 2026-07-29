@@ -244,8 +244,8 @@ export default function Profile() {
                           : <><UserPlus className="h-4 w-4" /> Follow</>}
                       </Button>
                     )}
-                    {/* Verification request (own profile only) */}
-                    {isOwnProfile && !user.isVerified && (
+                    {/* Verification request (own profile only, not for admins) */}
+                    {isOwnProfile && !user.isVerified && !user.isAdmin && (
                       <Button
                         variant="outline"
                         onClick={handleRequestVerification}
