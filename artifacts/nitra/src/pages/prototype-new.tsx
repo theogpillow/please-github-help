@@ -44,8 +44,7 @@ function SongPicker({
 
   useEffect(() => () => { previewAudio?.pause(); }, [previewAudio]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = async () => {
     if (!query.trim()) return;
     setSearching(true);
     setSearched(true);
@@ -152,21 +151,22 @@ function SongPicker({
 
       {tab === 'search' && (
         <div className="space-y-3">
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder="Search any song or artist…"
                 className="w-full pl-9 pr-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <Button type="submit" size="sm" disabled={searching}>
+            <Button type="button" size="sm" disabled={searching} onClick={handleSearch}>
               {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
             </Button>
-          </form>
+          </div>
 
           {searching && <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
 
