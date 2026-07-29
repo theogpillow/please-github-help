@@ -1,9 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Sparkles, MessageSquare, User, Lightbulb, Search, Shield } from 'lucide-react';
+import { Home, Sparkles, MessageSquare, User, Lightbulb, Search, Shield, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getCurrentUser } from '@/lib/auth';
+import { useQuery } from '@tanstack/react-query';
+
+function useUnreadCount(userId: number | undefined) {
+  const { data } = useQuery<{ count: number }>({
+    queryKey: ['notifications', 'unread', userId],
+    queryFn: () => fetch(`/api/notifications/unread-count?userId=${userId}`).then(r => r.json()),
+    enabled: !!userId,
+    refetchInterval: 30_000,
+  });
+  return data?.count ?? 0;
+}
 
 const navItems = [
   { path: '/feed', label: 'Feed', icon: Home },
@@ -16,6 +27,7 @@ const navItems = [
 export function NavBar() {
   const [location] = useLocation();
   const currentUser = getCurrentUser();
+  const unread = useUnreadCount(currentUser?.id);
   const desktopRef = useRef<HTMLElement>(null);
   const mobileRef = useRef<HTMLElement>(null);
 
@@ -79,6 +91,25 @@ export function NavBar() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            {currentUser && (
+              <Link
+                href="/inbox"
+                data-testid="nav-inbox"
+                className={cn(
+                  'relative flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-sm',
+                  location === '/inbox'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Bell className="h-4 w-4" />
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Link>
+            )}
             {currentUser?.isAdmin && (
               <Link
                 href="/admin"
@@ -153,10 +184,28 @@ export function NavBar() {
           )}
           {currentUser && (
             <Link
+              href="/inbox"
+              data-testid="nav-mobile-inbox"
+              className={cn(
+                'relative flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px]',
+                location === '/inbox' ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+              <span className="text-xs font-medium">Inbox</span>
+            </Link>
+          )}
+          {currentUser && (
+            <Link
               href={`/profile/${currentUser.username}`}
               data-testid="nav-mobile-profile"
               className={cn(
-                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors min-w-[72px]',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px]',
                 location === `/profile/${currentUser.username}`
                   ? 'text-primary'
                   : 'text-muted-foreground'

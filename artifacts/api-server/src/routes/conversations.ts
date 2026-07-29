@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, or } from "drizzle-orm";
-import { db, conversationsTable, messagesTable, usersTable } from "@workspace/db";
+import { db, conversationsTable, messagesTable, usersTable, notificationsTable } from "@workspace/db";
 import {
   ListConversationsQueryParams,
   CreateConversationBody,
@@ -140,6 +140,14 @@ router.post("/conversations/:id/messages", async (req, res): Promise<void> => {
     .update(conversationsTable)
     .set({ lastMessage: parsed.data.content, lastMessageAt: new Date() })
     .where(eq(conversationsTable.id, params.data.id));
+
+  // notify the other participant (fire-and-forget)
+  db.select().from(conversationsTable).where(eq(conversationsTable.id, params.data.id)).limit(1)
+    .then(([convo]) => {
+      if (!convo) return;
+      const recipientId = convo.initiatorId === parsed.data.senderId ? convo.recipientId : convo.initiatorId;
+      db.insert(notificationsTable).values({ userId: recipientId, type: "message", actorId: parsed.data.senderId }).catch(() => {});
+    }).catch(() => {});
 
   const [sender] = await db
     .select({ username: usersTable.username, isVerified: usersTable.isVerified })

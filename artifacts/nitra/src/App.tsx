@@ -17,6 +17,7 @@ import Saved from '@/pages/saved';
 import SearchPage from '@/pages/search';
 import NotFound from '@/pages/not-found';
 import AdminPage from '@/pages/admin/index';
+import Inbox from '@/pages/inbox';
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,11 @@ function Router() {
         </Route>
         <Route path="/admin">
           <AdminPage />
+        </Route>
+        <Route path="/inbox">
+          <AuthGuard>
+            <Inbox />
+          </AuthGuard>
         </Route>
         <Route component={NotFound} />
       </Switch>

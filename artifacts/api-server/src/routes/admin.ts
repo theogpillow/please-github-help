@@ -7,6 +7,7 @@ import {
   verificationRequestsTable,
   reportsTable,
   appSettingsTable,
+  notificationsTable,
 } from "@workspace/db";
 import { requireAdmin } from "../middleware/require-admin";
 
@@ -204,6 +205,10 @@ router.patch("/admin/users/:id", async (req, res): Promise<void> => {
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
+  }
+  // notify user when they get verified
+  if (body.isVerified === true) {
+    db.insert(notificationsTable).values({ userId: id, type: "verified" }).catch(() => {});
   }
   res.json({ ok: true, id: user.id, isBanned: user.isBanned, isVerified: user.isVerified, isAdmin: user.isAdmin });
 });

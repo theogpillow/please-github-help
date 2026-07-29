@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { followsTable, usersTable } from "@workspace/db/schema";
+import { followsTable, usersTable, notificationsTable } from "@workspace/db/schema";
 
 const router = Router();
 
@@ -74,6 +74,8 @@ router.post("/users/:username/follow", async (req, res): Promise<void> => {
   if (user.id === followerId) { res.status(400).json({ error: "Cannot follow yourself" }); return; }
 
   await db.insert(followsTable).values({ followerId, followingId: user.id }).onConflictDoNothing();
+  // fire-and-forget notification
+  db.insert(notificationsTable).values({ userId: user.id, type: "follow", actorId: followerId }).onConflictDoNothing().catch(() => {});
   res.json({ ok: true });
 });
 

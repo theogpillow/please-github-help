@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, ilike, and, sql, or, notInArray, inArray } from "drizzle-orm";
-import { db, prototypesTable, usersTable, followsTable, appSettingsTable, likesTable, savesTable } from "@workspace/db";
+import { db, prototypesTable, usersTable, followsTable, appSettingsTable, likesTable, savesTable, notificationsTable } from "@workspace/db";
 import {
   CreatePrototypeBody,
   GetPrototypeParams,
@@ -200,6 +200,10 @@ router.post("/prototypes/:id/like", async (req, res): Promise<void> => {
 
   await db.insert(likesTable).values({ userId, prototypeId });
   const likeCount = await getLikeCount(prototypeId);
+  // notify post owner (fire-and-forget)
+  db.select({ ownerId: prototypesTable.userId }).from(prototypesTable).where(eq(prototypesTable.id, prototypeId)).limit(1)
+    .then(([row]) => { if (row && row.ownerId !== userId) db.insert(notificationsTable).values({ userId: row.ownerId, type: "like", actorId: userId, prototypeId }).catch(() => {}); })
+    .catch(() => {});
   res.json({ likeCount, isLiked: true });
 });
 

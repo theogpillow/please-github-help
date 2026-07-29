@@ -9,6 +9,7 @@ import followsRouter from "./follows";
 import adminRouter from "./admin";
 import verificationRouter from "./verification";
 import reportsRouter from "./reports";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(followsRouter);
 router.use(adminRouter);
 router.use(verificationRouter);
 router.use(reportsRouter);
+router.use(notificationsRouter);
 
 export default router;
