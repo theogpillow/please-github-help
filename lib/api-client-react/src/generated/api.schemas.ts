@@ -81,6 +81,8 @@ export interface Prototype {
   userId: number;
   /** @nullable */
   username?: string | null;
+  /** @nullable */
+  creatorAvatarUrl?: string | null;
   title: string;
   /** @nullable */
   description?: string | null;
@@ -92,6 +94,8 @@ export interface Prototype {
   imageUrl?: string | null;
   /** @nullable */
   mediaUrls?: string | null;
+  /** @nullable */
+  audioUrl?: string | null;
   published: boolean;
   /** @nullable */
   category?: string | null;
@@ -107,6 +111,7 @@ export interface PrototypeInput {
   prompt?: string;
   category?: string;
   mediaUrls?: string;
+  audioUrl?: string;
 }
 
 export interface PrototypePatch {

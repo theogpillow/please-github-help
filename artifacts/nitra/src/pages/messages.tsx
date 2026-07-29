@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearch } from 'wouter';
-import { Send, Plus, MessageSquare, Search } from 'lucide-react';
+import { useSearch, useLocation } from 'wouter';
+import { Send, Plus, MessageSquare, Search, ExternalLink, Music2, Film, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,74 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Conversation } from '@workspace/api-client-react';
 
+interface ShareData {
+  __share: true;
+  id: number;
+  title: string;
+  imageUrl: string | null;
+  mediaUrls: string | null;
+  audioUrl: string | null;
+  category: string | null;
+}
+
+function parseShareMsg(content: string): ShareData | null {
+  try {
+    const obj = JSON.parse(content);
+    if (obj.__share) return obj as ShareData;
+  } catch {}
+  return null;
+}
+
+function previewLastMsg(msg: string | null | undefined): string {
+  if (!msg) return '';
+  if (msg.startsWith('{"__share":')) return '📎 Shared a prototype';
+  return msg;
+}
+
+function ShareCard({ share, isOwn, onOpen }: { share: ShareData; isOwn: boolean; onOpen: () => void }) {
+  const media: string[] = (() => {
+    try { return share.mediaUrls ? JSON.parse(share.mediaUrls) : []; } catch { return []; }
+  })();
+  const thumb = share.imageUrl || media[0] || null;
+  const isVideo = thumb && !share.imageUrl && /\.(mp4|webm|mov)$/i.test(thumb);
+
+  return (
+    <div className={`max-w-[240px] rounded-xl overflow-hidden border ${isOwn ? 'border-primary/30 bg-primary/5' : 'border-border bg-card'}`}>
+      {/* Thumbnail */}
+      <div className="aspect-video bg-muted relative overflow-hidden">
+        {thumb ? (
+          isVideo
+            ? <video src={thumb} className="w-full h-full object-cover" muted />
+            : <img src={thumb} alt={share.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            {share.audioUrl ? <Music2 className="h-10 w-10 text-muted-foreground/40" /> : <Film className="h-10 w-10 text-muted-foreground/40" />}
+          </div>
+        )}
+        {share.category && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 text-white text-[10px] rounded-full font-medium">{share.category}</span>
+        )}
+      </div>
+      {/* Info */}
+      <div className="p-3 space-y-2">
+        <p className="text-sm font-semibold leading-tight line-clamp-2">{share.title}</p>
+        {share.audioUrl && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><Music2 className="h-3 w-3" /> Has music</p>
+        )}
+        <button
+          onClick={onOpen}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Open Prototype
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Messages() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const currentUser = getCurrentUser();
@@ -280,7 +347,7 @@ export default function Messages() {
                         <p className="font-medium truncate">{otherUsername(convo)}</p>
                         {convo.lastMessage && (
                           <p className="text-sm text-muted-foreground truncate">
-                            {convo.lastMessage}
+                            {previewLastMsg(convo.lastMessage)}
                           </p>
                         )}
                         {convo.lastMessageAt && (
@@ -321,24 +388,31 @@ export default function Messages() {
                     <div className="space-y-4">
                       {messages.map((msg) => {
                         const isOwn = msg.senderId === currentUser.id;
+                        const shareData = parseShareMsg(msg.content);
                         return (
                           <div
                             key={msg.id}
                             data-testid={`message-${msg.id}`}
-                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                            className={`flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}
                           >
-                            <div
-                              className={`max-w-[70%] rounded-lg p-3 ${
-                                isOwn
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted'
-                              }`}
-                            >
-                              <p className="text-sm break-words">{msg.content}</p>
-                              <p className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                                {formatRelativeTime(msg.createdAt)}
-                              </p>
-                            </div>
+                            {shareData ? (
+                              <ShareCard
+                                share={shareData}
+                                isOwn={isOwn}
+                                onOpen={() => setLocation(`/prototype/${shareData.id}`)}
+                              />
+                            ) : (
+                              <div
+                                className={`max-w-[70%] rounded-lg p-3 ${
+                                  isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                }`}
+                              >
+                                <p className="text-sm break-words">{msg.content}</p>
+                              </div>
+                            )}
+                            <p className={`text-xs ${isOwn ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
+                              {formatRelativeTime(msg.createdAt)}
+                            </p>
                           </div>
                         );
                       })}

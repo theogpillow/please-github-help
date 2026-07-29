@@ -236,7 +236,8 @@ export const CreatePrototypeBody = zod.object({
   "description": zod.string().optional(),
   "prompt": zod.string().optional(),
   "category": zod.string().optional(),
-  "mediaUrls": zod.string().optional()
+  "mediaUrls": zod.string().optional(),
+  "audioUrl": zod.string().optional()
 })
 
 export const CreatePrototypeResponse = zod.object({

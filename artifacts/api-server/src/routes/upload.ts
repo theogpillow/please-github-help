@@ -20,7 +20,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024, files: 20 }, // 100MB per file, max 20
   fileFilter: (_req, file, cb) => {
-    const allowed = /image\/(jpeg|png|gif|webp)|video\/(mp4|webm|quicktime|mov)/;
+    const allowed = /image\/(jpeg|png|gif|webp)|video\/(mp4|webm|quicktime|mov)|audio\/(mpeg|mp4|wav|ogg|aac|x-m4a|webm)/;
     cb(null, allowed.test(file.mimetype));
   },
 });

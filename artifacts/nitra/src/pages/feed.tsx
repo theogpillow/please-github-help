@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Search, MessageSquare, Heart, Bookmark, Share2,
-  Sparkles, X, ExternalLink, TrendingUp, Users
+  Sparkles, X, ExternalLink, TrendingUp, Users, Music2, Play, Pause
 } from 'lucide-react';
 import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
 import { FollowButton } from '@/components/follow-button';
@@ -34,7 +34,17 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(() => isSaved(prototype.id));
   const [shareOpen, setShareOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [, setLocation] = useLocation();
+
+  const toggleAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) { audio.pause(); setIsPlaying(false); }
+    else { audio.play(); setIsPlaying(true); }
+  };
 
   const handleSave = () => {
     if (saved) {
@@ -80,7 +90,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
 
         {prototype.username && (
           <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
-            <UserAvatar username={prototype.username} className="h-7 w-7" />
+            <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-7 w-7" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">@{prototype.username}</p>
               <p className="text-xs text-muted-foreground">{formatRelativeTime(prototype.createdAt)}</p>
@@ -155,7 +165,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
               )}
               {prototype.username && (
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  <UserAvatar username={prototype.username} className="h-6 w-6 ring-1 ring-white/40" />
+                  <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-6 w-6 ring-1 ring-white/40" />
                   <span className="text-white text-sm font-medium">@{prototype.username}</span>
                   <span className="text-white/50 text-xs">· {formatRelativeTime(prototype.createdAt)}</span>
                   <FollowButton username={prototype.username} size="sm" className="!border-white/40 !bg-white/20 !text-white hover:!bg-white/30 backdrop-blur-sm" />
@@ -172,6 +182,32 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
             View
           </button>
         </Link>
+
+        {/* Audio player strip */}
+        {prototype.audioUrl && (
+          <>
+            <audio
+              ref={audioRef}
+              src={prototype.audioUrl}
+              loop
+              onEnded={() => setIsPlaying(false)}
+            />
+            <div className="absolute bottom-4 left-4 right-4 md:bottom-4 flex items-center gap-2 px-3 py-2 bg-black/50 backdrop-blur-md rounded-full pointer-events-auto">
+              <button
+                onClick={toggleAudio}
+                className="shrink-0 h-7 w-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                {isPlaying
+                  ? <Pause className="h-3.5 w-3.5 text-white" />
+                  : <Play className="h-3.5 w-3.5 text-white" />}
+              </button>
+              <Music2 className="h-3.5 w-3.5 text-white/70 shrink-0" />
+              <span className="text-white text-xs truncate flex-1">
+                {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Right: Actions ────────────────────────────── */}

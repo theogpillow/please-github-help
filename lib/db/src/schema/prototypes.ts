@@ -11,6 +11,7 @@ export const prototypesTable = pgTable("prototypes", {
   generatedContent: text("generated_content"),
   imageUrl: text("image_url"),
   mediaUrls: text("media_urls"), // JSON array of uploaded media URLs
+  audioUrl: text("audio_url"),   // Single background track
   published: boolean("published").notNull().default(false),
   category: text("category"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

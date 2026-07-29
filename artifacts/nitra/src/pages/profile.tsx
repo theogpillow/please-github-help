@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut } from 'lucide-react';
+import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +15,7 @@ import {
   useGetFollowCounts, useCheckFollowStatus, useFollowUser, useUnfollowUser,
   getGetUserQueryKey, getGetFollowCountsQueryKey, getCheckFollowStatusQueryKey,
 } from '@workspace/api-client-react';
-import { getCurrentUser, clearCurrentUser } from '@/lib/auth';
+import { getCurrentUser, setCurrentUser, clearCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -42,10 +42,42 @@ export default function Profile() {
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
 
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [bio, setBio] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyBio, setCompanyBio] = useState('');
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('files', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const { urls } = await res.json() as { urls: string[] };
+      const avatarUrl = urls[0];
+      updateUser.mutate(
+        { username: currentUser.username, data: { avatarUrl } },
+        {
+          onSuccess: (updated) => {
+            setCurrentUser(updated);
+            queryClient.invalidateQueries({ queryKey: getGetUserQueryKey(username) });
+            toast({ title: 'Profile picture updated!' });
+          },
+          onError: () => toast({ title: 'Failed to update picture', variant: 'destructive' }),
+        }
+      );
+    } catch {
+      toast({ title: 'Upload failed', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const isOwnProfile = currentUser && user && currentUser.id === user.id;
   const isFollowing = followStatus?.following ?? false;
@@ -131,7 +163,23 @@ export default function Profile() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start gap-6 flex-col md:flex-row">
-              <UserAvatar username={user.username} className="h-24 w-24 text-3xl" />
+              {/* Avatar — clickable on own profile */}
+              {isOwnProfile ? (
+                <div className="relative shrink-0 cursor-pointer group" onClick={() => avatarInputRef.current?.click()}>
+                  <UserAvatar username={user.username} avatarUrl={user.avatarUrl} className="h-24 w-24 text-3xl" />
+                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                  {avatarUploading && (
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    </div>
+                  )}
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                </div>
+              ) : (
+                <UserAvatar username={user.username} avatarUrl={user.avatarUrl} className="h-24 w-24 text-3xl" />
+              )}
               <div className="flex-1 space-y-4">
 
                 {/* Name + action buttons */}

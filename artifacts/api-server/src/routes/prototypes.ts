@@ -225,13 +225,16 @@ router.get("/feed", async (req, res): Promise<void> => {
   const userIds = [...new Set(ranked.map((p) => p.userId))];
   const users =
     userIds.length > 0
-      ? await db.select({ id: usersTable.id, username: usersTable.username }).from(usersTable)
+      ? await db.select({ id: usersTable.id, username: usersTable.username, avatarUrl: usersTable.avatarUrl }).from(usersTable)
       : [];
-  const userMap = Object.fromEntries(users.map((u) => [u.id, u.username]));
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
 
   res.json({
     total,
-    items: ranked.map((p) => mapPrototype(p, userMap[p.userId] ?? null)),
+    items: ranked.map((p) => {
+      const u = userMap[p.userId];
+      return mapPrototype(p, u?.username ?? null, u?.avatarUrl ?? null);
+    }),
   });
 });
 
@@ -251,17 +254,23 @@ router.get("/feed/stats", async (req, res): Promise<void> => {
   res.json({ totalPrototypes, totalEntrepreneurs, totalPublished });
 });
 
-function mapPrototype(p: typeof prototypesTable.$inferSelect, username: string | null) {
+function mapPrototype(
+  p: typeof prototypesTable.$inferSelect,
+  username: string | null,
+  creatorAvatarUrl: string | null = null,
+) {
   return {
     id: p.id,
     userId: p.userId,
     username,
+    creatorAvatarUrl,
     title: p.title,
     description: p.description,
     prompt: p.prompt,
     generatedContent: p.generatedContent,
     imageUrl: p.imageUrl,
     mediaUrls: p.mediaUrls,
+    audioUrl: p.audioUrl,
     published: p.published,
     category: p.category,
     createdAt: p.createdAt.toISOString(),
