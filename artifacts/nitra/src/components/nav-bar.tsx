@@ -43,7 +43,7 @@ export function NavBar() {
   return (
     <>
       {/* Desktop nav */}
-      <nav ref={desktopRef} className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border transform-gpu">
+      <nav ref={desktopRef} className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-background border-b border-border" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
         <div className="max-w-7xl mx-auto w-full px-6 h-16 flex items-center justify-between">
           <Link href="/feed" className="flex items-center gap-2 text-xl font-bold font-serif">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -114,7 +114,7 @@ export function NavBar() {
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav ref={mobileRef} className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border transform-gpu">
+      <nav ref={mobileRef} className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
         <div className="flex items-center justify-around px-2 py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
