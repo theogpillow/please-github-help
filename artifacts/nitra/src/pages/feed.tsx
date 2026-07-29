@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
 import { FollowButton } from '@/components/follow-button';
+import { ShareModal } from '@/components/share-modal';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +33,7 @@ function getGradient(id: number) {
 function FeedCard({ prototype, index }: { prototype: Prototype; index: number }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(() => isSaved(prototype.id));
+  const [shareOpen, setShareOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   const handleSave = () => {
@@ -194,9 +196,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
         <ActionBtn
           icon={<Share2 className="h-5 w-5" />}
           label="Share"
-          onClick={() => {
-            navigator.clipboard?.writeText(window.location.origin + `/prototype/${prototype.id}`);
-          }}
+          onClick={() => setShareOpen(true)}
         />
       </div>
 
@@ -223,7 +223,16 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
             label="View"
           />
         </Link>
+        <MobileActionBtn
+          icon={<Share2 className="h-5 w-5" />}
+          label="Share"
+          onClick={() => setShareOpen(true)}
+        />
       </div>
+
+      {shareOpen && (
+        <ShareModal prototype={prototype} onClose={() => setShareOpen(false)} />
+      )}
     </article>
   );
 }
