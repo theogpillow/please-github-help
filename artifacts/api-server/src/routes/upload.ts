@@ -32,7 +32,7 @@ router.post('/', upload.array('files', 20), (req: Request, res: Response) => {
     res.status(400).json({ error: 'No files uploaded' });
     return;
   }
-  const urls = files.map(f => `/uploads/${f.filename}`);
+  const urls = files.map(f => `/api/uploads/${f.filename}`);
   res.json({ urls });
 });
 

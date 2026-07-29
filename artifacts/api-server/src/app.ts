@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-app.use("/uploads", express.static(uploadDir));
+app.use("/api/uploads", express.static(uploadDir));
 
 app.use("/api", router);
 
