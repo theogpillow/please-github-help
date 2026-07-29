@@ -238,7 +238,7 @@ function PostsTab({ userId }: { userId: number }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium truncate max-w-xs">{p.title}</p>
-                    {statusBadge(p.status)}
+                    {statusBadge(p.status ?? '')}
                   </div>
                   <p className="text-xs text-muted-foreground">@{p.username ?? 'unknown'} · {formatRelativeTime(p.createdAt)}</p>
                 </div>
@@ -322,7 +322,7 @@ function ReportsTab({ userId }: { userId: number }) {
                 <p className="text-xs text-muted-foreground">
                   Reported by @{r.reporterUsername ?? 'unknown'} · {formatRelativeTime(r.createdAt)}
                 </p>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${REASON_COLORS[r.reason] ?? 'bg-muted text-muted-foreground'}`}>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${REASON_COLORS[r.reason ?? ''] ?? 'bg-muted text-muted-foreground'}`}>
                   {r.reason}
                 </span>
               </div>

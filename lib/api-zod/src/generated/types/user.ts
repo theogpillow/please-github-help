@@ -17,5 +17,8 @@ export interface User {
   companyBio?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  isVerified?: boolean;
+  isAdmin?: boolean;
+  isBanned?: boolean;
   createdAt: string;
 }

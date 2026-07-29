@@ -13,4 +13,8 @@ export type GetFeedParams = {
 q?: string;
 limit?: number;
 offset?: number;
+/**
+ * Optional viewer user ID for personalized feed
+ */
+viewerId?: number;
 };

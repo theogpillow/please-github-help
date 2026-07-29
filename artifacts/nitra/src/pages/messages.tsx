@@ -24,6 +24,8 @@ interface ShareData {
   mediaUrls: string | null;
   audioUrl: string | null;
   category: string | null;
+  creatorUsername?: string | null;
+  creatorIsVerified?: boolean;
 }
 
 function parseShareMsg(content: string): ShareData | null {
@@ -67,6 +69,12 @@ function ShareCard({ share, isOwn, onOpen }: { share: ShareData; isOwn: boolean;
       {/* Info */}
       <div className="p-3 space-y-2">
         <p className="text-sm font-semibold leading-tight line-clamp-2">{share.title}</p>
+        {share.creatorUsername && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <span>by {share.creatorUsername}</span>
+            {share.creatorIsVerified && <VerifiedBadge size="sm" showTooltip={false} />}
+          </p>
+        )}
         {share.audioUrl && (
           <p className="text-xs text-muted-foreground flex items-center gap-1"><Music2 className="h-3 w-3" /> Has music</p>
         )}
@@ -236,8 +244,8 @@ export default function Messages() {
 
   const otherIsVerified = (convo: Conversation) => {
     return convo.initiatorId === currentUser.id
-      ? convo.recipientIsVerified
-      : convo.initiatorIsVerified;
+      ? (convo.recipientIsVerified ?? false)
+      : (convo.initiatorIsVerified ?? false);
   };
 
   return (
@@ -352,8 +360,8 @@ export default function Messages() {
                       <UserAvatar username={otherUsername(convo) || 'U'} className="h-10 w-10 shrink-0" />
                       <div className="flex-1 text-left min-w-0">
                         <p className="font-medium truncate flex items-center gap-1">
-                          {otherUsername(convo)}
-                          {otherIsVerified(convo) && <VerifiedBadge size="sm" showTooltip={false} />}
+                          <span className="truncate">{otherUsername(convo)}</span>
+                          {otherIsVerified(convo) && <VerifiedBadge size="sm" />}
                         </p>
                         {convo.lastMessage && (
                           <p className="text-sm text-muted-foreground truncate">
@@ -384,8 +392,10 @@ export default function Messages() {
                 <CardHeader className="flex-shrink-0 border-b">
                   <CardTitle className="flex items-center gap-3">
                     <UserAvatar username={otherUsername(selectedConversation) || 'U'} className="h-8 w-8" />
-                    {otherUsername(selectedConversation)}
-                    {otherIsVerified(selectedConversation) && <VerifiedBadge size="md" />}
+                    <span className="flex items-center gap-1.5">
+                      {otherUsername(selectedConversation)}
+                      {otherIsVerified(selectedConversation) && <VerifiedBadge size="sm" />}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <ScrollArea className="flex-1 p-4">
@@ -407,8 +417,8 @@ export default function Messages() {
                             className={`flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}
                           >
                             {!isOwn && msg.senderUsername && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-0.5">
-                                @{msg.senderUsername}
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 px-1">
+                                <span>{msg.senderUsername}</span>
                                 {msg.senderIsVerified && <VerifiedBadge size="sm" showTooltip={false} />}
                               </p>
                             )}

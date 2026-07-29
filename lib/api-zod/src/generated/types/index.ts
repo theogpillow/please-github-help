@@ -6,6 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminPost';
+export * from './adminReport';
+export * from './adminStats';
+export * from './adminUser';
+export * from './adminVerificationRequest';
+export * from './appSettings';
 export * from './conversation';
 export * from './conversationInput';
 export * from './errorResponse';

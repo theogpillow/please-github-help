@@ -14,4 +14,5 @@ export interface PrototypeInput {
   prompt?: string;
   category?: string;
   mediaUrls?: string;
+  audioUrl?: string;
 }

@@ -11,6 +11,10 @@ export interface Prototype {
   userId: number;
   /** @nullable */
   username?: string | null;
+  isVerified?: boolean;
+  /** @nullable */
+  creatorAvatarUrl?: string | null;
+  creatorIsVerified?: boolean;
   title: string;
   /** @nullable */
   description?: string | null;
@@ -22,6 +26,10 @@ export interface Prototype {
   imageUrl?: string | null;
   /** @nullable */
   mediaUrls?: string | null;
+  /** @nullable */
+  audioUrl?: string | null;
+  /** @nullable */
+  status?: string | null;
   published: boolean;
   /** @nullable */
   category?: string | null;

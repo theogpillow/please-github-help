@@ -417,6 +417,10 @@ paths:
         - in: query
           name: offset
           schema: { type: integer, default: 0 }
+        - in: query
+          name: viewerId
+          schema: { type: integer }
+          description: Optional viewer user ID for personalized feed
       responses:
         "200":
           description: Feed items
@@ -582,6 +586,9 @@ components:
         companyName: { type: ["string", "null"] }
         companyBio: { type: ["string", "null"] }
         avatarUrl: { type: ["string", "null"] }
+        isVerified: { type: boolean }
+        isAdmin: { type: boolean }
+        isBanned: { type: boolean }
         createdAt: { type: string }
 
     UserInput:
@@ -649,12 +656,17 @@ components:
         id: { type: integer }
         userId: { type: integer }
         username: { type: ["string", "null"] }
+        isVerified: { type: boolean }
+        creatorAvatarUrl: { type: ["string", "null"] }
+        creatorIsVerified: { type: boolean }
         title: { type: string }
         description: { type: ["string", "null"] }
         prompt: { type: ["string", "null"] }
         generatedContent: { type: ["string", "null"] }
         imageUrl: { type: ["string", "null"] }
         mediaUrls: { type: ["string", "null"] }
+        audioUrl: { type: ["string", "null"] }
+        status: { type: ["string", "null"] }
         published: { type: boolean }
         category: { type: ["string", "null"] }
         createdAt: { type: string }
@@ -670,6 +682,7 @@ components:
         prompt: { type: string }
         category: { type: string }
         mediaUrls: { type: string }
+        audioUrl: { type: string }
 
     PrototypePatch:
       type: object
@@ -716,6 +729,8 @@ components:
         recipientId: { type: integer }
         initiatorUsername: { type: ["string", "null"] }
         recipientUsername: { type: ["string", "null"] }
+        initiatorIsVerified: { type: boolean }
+        recipientIsVerified: { type: boolean }
         lastMessage: { type: ["string", "null"] }
         lastMessageAt: { type: ["string", "null"] }
         createdAt: { type: string }
@@ -735,6 +750,7 @@ components:
         conversationId: { type: integer }
         senderId: { type: integer }
         senderUsername: { type: ["string", "null"] }
+        senderIsVerified: { type: boolean }
         content: { type: string }
         createdAt: { type: string }
 
@@ -773,3 +789,73 @@ components:
       properties:
         type: { type: string }
         text: { type: string }
+
+    # ── Admin schemas ─────────────────────────────────────
+    AdminStats:
+      type: object
+      required: [totalUsers, totalPrototypes, pendingVerifications, openReports, flaggedPosts]
+      properties:
+        totalUsers: { type: integer }
+        totalPrototypes: { type: integer }
+        pendingVerifications: { type: integer }
+        openReports: { type: integer }
+        flaggedPosts: { type: integer }
+
+    AdminVerificationRequest:
+      type: object
+      required: [id, userId, status, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        status: { type: string }
+        createdAt: { type: string }
+        username: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        isVerified: { type: boolean }
+
+    AdminPost:
+      type: object
+      required: [id, userId, title, published, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        imageUrl: { type: ["string", "null"] }
+        mediaUrls: { type: ["string", "null"] }
+        published: { type: boolean }
+        status: { type: ["string", "null"] }
+        category: { type: ["string", "null"] }
+        createdAt: { type: string }
+        username: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+
+    AdminReport:
+      type: object
+      required: [id, prototypeId, reporterId, status, createdAt]
+      properties:
+        id: { type: integer }
+        prototypeId: { type: integer }
+        reporterId: { type: integer }
+        reason: { type: ["string", "null"] }
+        status: { type: string }
+        createdAt: { type: string }
+        reporterUsername: { type: ["string", "null"] }
+        prototypeTitle: { type: ["string", "null"] }
+
+    AdminUser:
+      type: object
+      required: [id, username, createdAt]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        isAdmin: { type: boolean }
+        isVerified: { type: boolean }
+        isBanned: { type: boolean }
+        createdAt: { type: string }
+
+    AppSettings:
+      type: object
+      additionalProperties:
+        type: string

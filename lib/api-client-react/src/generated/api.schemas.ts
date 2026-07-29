@@ -24,8 +24,8 @@ export interface User {
   companyBio?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
-  isAdmin?: boolean;
   isVerified?: boolean;
+  isAdmin?: boolean;
   isBanned?: boolean;
   createdAt: string;
 }
@@ -84,6 +84,7 @@ export interface Prototype {
   userId: number;
   /** @nullable */
   username?: string | null;
+  isVerified?: boolean;
   /** @nullable */
   creatorAvatarUrl?: string | null;
   creatorIsVerified?: boolean;
@@ -100,84 +101,13 @@ export interface Prototype {
   mediaUrls?: string | null;
   /** @nullable */
   audioUrl?: string | null;
-  published: boolean;
   /** @nullable */
   status?: string | null;
+  published: boolean;
   /** @nullable */
   category?: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface VerificationStatus {
-  status: 'none' | 'pending' | 'approved' | 'rejected';
-  id?: number;
-  createdAt?: string;
-}
-
-export interface AdminStats {
-  totalUsers: number;
-  totalPrototypes: number;
-  pendingVerifications: number;
-  openReports: number;
-  flaggedPosts: number;
-}
-
-export interface AdminVerificationRequest {
-  id: number;
-  userId: number;
-  status: string;
-  createdAt: string;
-  username: string | null;
-  avatarUrl: string | null;
-  isVerified: boolean;
-}
-
-export interface AdminPost {
-  id: number;
-  userId: number;
-  title: string;
-  description: string | null;
-  imageUrl: string | null;
-  mediaUrls: string | null;
-  published: boolean;
-  status: string;
-  category: string | null;
-  createdAt: string;
-  username: string | null;
-  avatarUrl: string | null;
-}
-
-export interface AdminReport {
-  id: number;
-  prototypeId: number;
-  reporterId: number;
-  reason: string;
-  status: string;
-  createdAt: string;
-  reporterUsername: string | null;
-  prototypeTitle: string | null;
-}
-
-export interface AdminUser {
-  id: number;
-  username: string;
-  avatarUrl: string | null;
-  isAdmin: boolean;
-  isVerified: boolean;
-  isBanned: boolean;
-  createdAt: string;
-}
-
-export interface AppSettings {
-  pre_moderation?: string;
-  [key: string]: string | undefined;
-}
-
-export interface ReportInput {
-  reporterId: number;
-  prototypeId: number;
-  reason: string;
 }
 
 export interface PrototypeInput {
@@ -278,6 +208,75 @@ export interface FeedbackResponse {
   score?: number | null;
 }
 
+export interface AdminStats {
+  totalUsers: number;
+  totalPrototypes: number;
+  pendingVerifications: number;
+  openReports: number;
+  flaggedPosts: number;
+}
+
+export interface AdminVerificationRequest {
+  id: number;
+  userId: number;
+  status: string;
+  createdAt: string;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  isVerified?: boolean;
+}
+
+export interface AdminPost {
+  id: number;
+  userId: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  mediaUrls?: string | null;
+  published: boolean;
+  /** @nullable */
+  status?: string | null;
+  /** @nullable */
+  category?: string | null;
+  createdAt: string;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export interface AdminReport {
+  id: number;
+  prototypeId: number;
+  reporterId: number;
+  /** @nullable */
+  reason?: string | null;
+  status: string;
+  createdAt: string;
+  /** @nullable */
+  reporterUsername?: string | null;
+  /** @nullable */
+  prototypeTitle?: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  isAdmin?: boolean;
+  isVerified?: boolean;
+  isBanned?: boolean;
+  createdAt: string;
+}
+
+export interface AppSettings {[key: string]: string}
+
 export type ListUsersParams = {
 /**
  * Optional search term
@@ -292,7 +291,9 @@ export type GetFeedParams = {
 q?: string;
 limit?: number;
 offset?: number;
-/** Logged-in user ID for personalised ranking */
+/**
+ * Optional viewer user ID for personalized feed
+ */
 viewerId?: number;
 };
 

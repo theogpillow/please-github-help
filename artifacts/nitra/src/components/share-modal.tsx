@@ -31,6 +31,8 @@ function buildSharePayload(p: Prototype): string {
     mediaUrls: p.mediaUrls ?? null,
     audioUrl: p.audioUrl ?? null,
     category: p.category ?? null,
+    creatorUsername: p.username ?? null,
+    creatorIsVerified: p.creatorIsVerified ?? p.isVerified ?? false,
   });
 }
 

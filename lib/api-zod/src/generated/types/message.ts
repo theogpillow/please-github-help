@@ -12,6 +12,7 @@ export interface Message {
   senderId: number;
   /** @nullable */
   senderUsername?: string | null;
+  senderIsVerified?: boolean;
   content: string;
   createdAt: string;
 }
