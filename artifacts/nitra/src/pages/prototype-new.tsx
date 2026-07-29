@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Sparkles, ImagePlus, X, Film, Music, Music2 } from 'lucide-react';
+import { Sparkles, ImagePlus, X, Film, Music, Music2, Search, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,209 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useCreatePrototype } from '@workspace/api-client-react';
 import { getCurrentUser } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
+
+interface ItunesTrack {
+  trackId: number;
+  trackName: string;
+  artistName: string;
+  collectionName: string;
+  previewUrl: string;
+  artworkUrl100: string;
+}
+
+interface SelectedSong {
+  name: string;
+  artist: string;
+  previewUrl: string;
+  artwork: string;
+}
+
+function SongPicker({
+  songFile, setSongFile,
+  selectedSong, setSelectedSong,
+}: {
+  songFile: File | null; setSongFile: (f: File | null) => void;
+  selectedSong: SelectedSong | null; setSelectedSong: (s: SelectedSong | null) => void;
+}) {
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<'search' | 'upload'>('search');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ItunesTrack[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [playingId, setPlayingId] = useState<number | null>(null);
+
+  useEffect(() => () => { previewAudio?.pause(); }, [previewAudio]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    setSearched(true);
+    try {
+      const res = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=25`
+      );
+      const data = await res.json() as { results: ItunesTrack[] };
+      setResults(data.results.filter(t => t.previewUrl));
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const togglePreview = (track: ItunesTrack) => {
+    if (playingId === track.trackId) {
+      previewAudio?.pause();
+      setPlayingId(null);
+      return;
+    }
+    previewAudio?.pause();
+    const audio = new Audio(track.previewUrl);
+    audio.play();
+    audio.onended = () => setPlayingId(null);
+    setPreviewAudio(audio);
+    setPlayingId(track.trackId);
+  };
+
+  const selectTrack = (track: ItunesTrack) => {
+    previewAudio?.pause();
+    setPlayingId(null);
+    setSelectedSong({ name: track.trackName, artist: track.artistName, previewUrl: track.previewUrl, artwork: track.artworkUrl100 });
+    setSongFile(null);
+  };
+
+  const clear = () => {
+    previewAudio?.pause();
+    setPlayingId(null);
+    setSelectedSong(null);
+    setSongFile(null);
+  };
+
+  // Show selected state for either source
+  if (selectedSong || songFile) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/30">
+        {selectedSong?.artwork
+          ? <img src={selectedSong.artwork} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+          : <div className="p-2 rounded-lg bg-primary/10 shrink-0"><Music2 className="h-5 w-5 text-primary" /></div>
+        }
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{selectedSong ? selectedSong.name : songFile!.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {selectedSong ? selectedSong.artist : `${(songFile!.size / 1024 / 1024).toFixed(1)} MB`}
+          </p>
+        </div>
+        <button type="button" onClick={clear} className="p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-muted/60 p-1 rounded-lg w-fit">
+        <button
+          type="button"
+          onClick={() => setTab('search')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === 'search' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Search className="h-3.5 w-3.5" /> Search Songs
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('upload')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === 'upload' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Upload className="h-3.5 w-3.5" /> Upload File
+        </button>
+      </div>
+
+      {tab === 'upload' && (
+        <>
+          <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { setSongFile(f); setSelectedSong(null); } e.target.value = ''; }} />
+          <button
+            type="button"
+            onClick={() => audioInputRef.current?.click()}
+            className="flex items-center gap-3 w-full px-5 py-4 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-left group"
+          >
+            <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Music className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium group-hover:text-primary transition-colors">Upload an audio file</p>
+              <p className="text-xs text-muted-foreground">MP3, WAV, AAC, OGG · plays on your post</p>
+            </div>
+          </button>
+        </>
+      )}
+
+      {tab === 'search' && (
+        <div className="space-y-3">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search any song or artist…"
+                className="w-full pl-9 pr-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={searching}>
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+            </Button>
+          </form>
+
+          {searching && <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
+
+          {!searching && searched && results.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">No songs found. Try a different search.</p>
+          )}
+
+          {!searching && results.length > 0 && (
+            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+              {results.map(track => (
+                <div key={track.trackId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/60 transition-colors group">
+                  <img src={track.artworkUrl100} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{track.trackName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{track.artistName}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => togglePreview(track)}
+                      className="px-2.5 py-1 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
+                    >
+                      {playingId === track.trackId ? '⏸ Stop' : '▶ Preview'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => selectTrack(track)}
+                      className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Select
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!searched && (
+            <p className="text-xs text-muted-foreground text-center py-2">Search from millions of real songs · 30-second previews</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const CATEGORIES = ['SaaS', 'E-commerce', 'AI/ML', 'Fintech', 'Healthcare', 'Education', 'Social', 'Other'];
 const MAX_FILES = 20;
@@ -25,14 +228,13 @@ export default function PrototypeNew() {
   const currentUser = getCurrentUser();
   const createPrototype = useCreatePrototype();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [prompt, setPrompt] = useState('');
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [songFile, setSongFile] = useState<File | null>(null);
+  const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,12 +251,6 @@ export default function PrototypeNew() {
       type: file.type.startsWith('video/') ? 'video' : 'image',
     }));
     setMediaFiles(prev => [...prev, ...newFiles]);
-    e.target.value = '';
-  };
-
-  const handleSongChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setSongFile(file);
     e.target.value = '';
   };
 
@@ -96,7 +292,7 @@ export default function PrototypeNew() {
     try {
       const [urls, songUrl] = await Promise.all([uploadFiles(), uploadSong()]);
       if (urls.length) mediaUrls = JSON.stringify(urls);
-      audioUrl = songUrl;
+      audioUrl = selectedSong ? selectedSong.previewUrl : songUrl;
     } catch {
       toast({ title: 'Upload failed', description: 'Could not upload your files. Please try again.', variant: 'destructive' });
       setUploading(false);
@@ -229,38 +425,13 @@ export default function PrototypeNew() {
                 )}
               </div>
 
-              {/* Song upload */}
+              {/* Song picker */}
               <div className="space-y-3">
                 <Label>Background Song</Label>
-                <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={handleSongChange} />
-                {!songFile ? (
-                  <button
-                    type="button"
-                    onClick={() => audioInputRef.current?.click()}
-                    className="flex items-center gap-3 w-full px-5 py-4 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-left group"
-                  >
-                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <Music className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium group-hover:text-primary transition-colors">Add a song</p>
-                      <p className="text-xs text-muted-foreground">MP3, WAV, AAC, OGG · plays on your post</p>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/30">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Music2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{songFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(songFile.size / 1024 / 1024).toFixed(1)} MB</p>
-                    </div>
-                    <button type="button" onClick={() => setSongFile(null)} className="p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+                <SongPicker
+                  songFile={songFile} setSongFile={setSongFile}
+                  selectedSong={selectedSong} setSelectedSong={setSelectedSong}
+                />
               </div>
 
               {/* Category */}

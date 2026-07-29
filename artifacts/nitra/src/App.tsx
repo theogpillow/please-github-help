@@ -43,7 +43,7 @@ function Router() {
       {showNav && <NavBar />}
       <Switch>
         <Route path="/">
-          {currentUser ? <PrototypeNew /> : <Onboarding />}
+          {currentUser ? <Feed /> : <Onboarding />}
         </Route>
         <Route path="/feed">
           <AuthGuard>
