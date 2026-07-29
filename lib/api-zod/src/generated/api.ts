@@ -168,7 +168,10 @@ export const ListUserPrototypesResponseItem = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 })
 export const ListUserPrototypesResponse = zod.array(ListUserPrototypesResponseItem)
 
@@ -278,7 +281,10 @@ export const CreatePrototypeResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 })
 
 
@@ -307,7 +313,10 @@ export const GetPrototypeResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 })
 
 
@@ -348,7 +357,10 @@ export const UpdatePrototypeResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 })
 
 
@@ -387,7 +399,10 @@ export const PublishPrototypeResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 })
 
 
@@ -423,7 +438,111 @@ export const GeneratePrototypeResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Like a prototype
+ */
+export const LikePrototypeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LikePrototypeBody = zod.object({
+  "userId": zod.number()
+})
+
+export const LikePrototypeResponse = zod.object({
+  "likeCount": zod.number(),
+  "isLiked": zod.boolean()
+})
+
+
+/**
+ * @summary Unlike a prototype
+ */
+export const UnlikePrototypeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnlikePrototypeQueryParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const UnlikePrototypeResponse = zod.object({
+  "likeCount": zod.number(),
+  "isLiked": zod.boolean()
+})
+
+
+/**
+ * @summary Save (bookmark) a prototype
+ */
+export const SavePrototypeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SavePrototypeBody = zod.object({
+  "userId": zod.number()
+})
+
+export const SavePrototypeResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Unsave (unbookmark) a prototype
+ */
+export const UnsavePrototypeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnsavePrototypeQueryParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const UnsavePrototypeResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Get saved prototypes for a user
+ */
+export const GetSavesQueryParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const GetSavesResponse = zod.object({
+  "total": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "username": zod.string().nullish(),
+  "isVerified": zod.boolean().optional(),
+  "creatorAvatarUrl": zod.string().nullish(),
+  "creatorIsVerified": zod.boolean().optional(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "prompt": zod.string().nullish(),
+  "generatedContent": zod.string().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "mediaUrls": zod.string().nullish(),
+  "audioUrl": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "published": zod.boolean(),
+  "category": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
+}))
 })
 
 
@@ -460,7 +579,10 @@ export const GetFeedResponse = zod.object({
   "published": zod.boolean(),
   "category": zod.string().nullish(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "likeCount": zod.number().optional(),
+  "isLiked": zod.boolean().optional(),
+  "isSaved": zod.boolean().optional()
 }))
 })
 

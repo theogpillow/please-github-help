@@ -35,4 +35,7 @@ export interface Prototype {
   category?: string | null;
   createdAt: string;
   updatedAt: string;
+  likeCount?: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
 }

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, ilike, and, sql, or, notInArray } from "drizzle-orm";
-import { db, prototypesTable, usersTable, followsTable, appSettingsTable } from "@workspace/db";
+import { eq, desc, ilike, and, sql, or, notInArray, inArray } from "drizzle-orm";
+import { db, prototypesTable, usersTable, followsTable, appSettingsTable, likesTable, savesTable } from "@workspace/db";
 import {
   CreatePrototypeBody,
   GetPrototypeParams,
@@ -15,6 +15,28 @@ import {
 import { generateAIContent, generatePrototypeWithImage } from "../lib/ai";
 
 const router: IRouter = Router();
+
+function parseLikeBody(body: unknown): { userId: number } | null {
+  if (typeof body !== "object" || body === null) return null;
+  const userId = (body as Record<string, unknown>).userId;
+  if (typeof userId !== "number" || !Number.isInteger(userId)) return null;
+  return { userId };
+}
+
+function parseUserIdQuery(query: unknown): { userId: number } | null {
+  if (typeof query !== "object" || query === null) return null;
+  const raw = (query as Record<string, unknown>).userId;
+  const userId = Number(raw);
+  if (isNaN(userId) || !Number.isInteger(userId)) return null;
+  return { userId };
+}
+
+function parsePrototypeId(params: unknown): { id: number } | null {
+  if (typeof params !== "object" || params === null) return null;
+  const id = Number((params as Record<string, unknown>).id);
+  if (isNaN(id) || !Number.isInteger(id)) return null;
+  return { id };
+}
 
 // Create prototype
 router.post("/prototypes", async (req, res): Promise<void> => {
@@ -41,7 +63,11 @@ router.get("/prototypes/:id", async (req, res): Promise<void> => {
     return;
   }
   const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
+  const viewerId = req.query.viewerId ? Number(req.query.viewerId) : null;
+  const likeCount = await getLikeCount(proto.id);
+  const isLiked = viewerId ? await checkLiked(viewerId, proto.id) : false;
+  const isSaved = viewerId ? await checkSaved(viewerId, proto.id) : false;
+  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false, likeCount, isLiked, isSaved));
 });
 
 // Update prototype
@@ -154,6 +180,175 @@ router.post("/prototypes/:id/generate", async (req, res): Promise<void> => {
   res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
+// ── Like / Unlike ──────────────────────────────────────────────────────────
+
+router.post("/prototypes/:id/like", async (req, res): Promise<void> => {
+  const params = parsePrototypeId(req.params);
+  if (!params) { res.status(400).json({ error: "Invalid prototype id" }); return; }
+  const body = parseLikeBody(req.body);
+  if (!body) { res.status(400).json({ error: "userId required" }); return; }
+
+  const { id: prototypeId } = params;
+  const { userId } = body;
+
+  const existing = await db.select().from(likesTable)
+    .where(and(eq(likesTable.userId, userId), eq(likesTable.prototypeId, prototypeId)));
+  if (existing.length > 0) {
+    res.status(409).json({ error: "Already liked" });
+    return;
+  }
+
+  await db.insert(likesTable).values({ userId, prototypeId });
+  const likeCount = await getLikeCount(prototypeId);
+  res.json({ likeCount, isLiked: true });
+});
+
+router.delete("/prototypes/:id/like", async (req, res): Promise<void> => {
+  const params = parsePrototypeId(req.params);
+  if (!params) { res.status(400).json({ error: "Invalid prototype id" }); return; }
+  const query = parseUserIdQuery(req.query);
+  if (!query) { res.status(400).json({ error: "userId required" }); return; }
+
+  const { id: prototypeId } = params;
+  const { userId } = query;
+
+  await db.delete(likesTable)
+    .where(and(eq(likesTable.userId, userId), eq(likesTable.prototypeId, prototypeId)));
+  const likeCount = await getLikeCount(prototypeId);
+  res.json({ likeCount, isLiked: false });
+});
+
+// ── Save / Unsave ──────────────────────────────────────────────────────────
+
+router.post("/prototypes/:id/save", async (req, res): Promise<void> => {
+  const params = parsePrototypeId(req.params);
+  if (!params) { res.status(400).json({ error: "Invalid prototype id" }); return; }
+  const body = parseLikeBody(req.body);
+  if (!body) { res.status(400).json({ error: "userId required" }); return; }
+
+  const { id: prototypeId } = params;
+  const { userId } = body;
+
+  const existing = await db.select().from(savesTable)
+    .where(and(eq(savesTable.userId, userId), eq(savesTable.prototypeId, prototypeId)));
+  if (existing.length > 0) {
+    res.status(409).json({ error: "Already saved" });
+    return;
+  }
+
+  await db.insert(savesTable).values({ userId, prototypeId });
+  res.json({ ok: true });
+});
+
+router.delete("/prototypes/:id/save", async (req, res): Promise<void> => {
+  const params = parsePrototypeId(req.params);
+  if (!params) { res.status(400).json({ error: "Invalid prototype id" }); return; }
+  const query = parseUserIdQuery(req.query);
+  if (!query) { res.status(400).json({ error: "userId required" }); return; }
+
+  const { id: prototypeId } = params;
+  const { userId } = query;
+
+  await db.delete(savesTable)
+    .where(and(eq(savesTable.userId, userId), eq(savesTable.prototypeId, prototypeId)));
+  res.json({ ok: true });
+});
+
+// ── Get Saves ──────────────────────────────────────────────────────────────
+
+router.get("/saves", async (req, res): Promise<void> => {
+  const query = parseUserIdQuery(req.query);
+  if (!query) { res.status(400).json({ error: "userId required" }); return; }
+
+  const { userId } = query;
+
+  const savedRows = await db.select({ prototypeId: savesTable.prototypeId })
+    .from(savesTable)
+    .where(eq(savesTable.userId, userId))
+    .orderBy(desc(savesTable.createdAt));
+
+  if (savedRows.length === 0) {
+    res.json({ total: 0, items: [] });
+    return;
+  }
+
+  const prototypeIds = savedRows.map(r => r.prototypeId);
+  const protos = await db.select().from(prototypesTable)
+    .where(inArray(prototypesTable.id, prototypeIds));
+
+  // Preserve save order
+  const protoMap = Object.fromEntries(protos.map(p => [p.id, p]));
+  const ordered = prototypeIds.map(id => protoMap[id]).filter(Boolean);
+
+  const userIds = [...new Set(ordered.map(p => p.userId))];
+  const users = userIds.length > 0
+    ? await db.select({ id: usersTable.id, username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified })
+        .from(usersTable)
+        .where(inArray(usersTable.id, userIds))
+    : [];
+  const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+
+  // Get like counts and isLiked for all protos at once
+  const likeCounts = await getLikeCounts(prototypeIds);
+  const likedSet = await getLikedSet(userId, prototypeIds);
+
+  res.json({
+    total: ordered.length,
+    items: ordered.map(p => {
+      const u = userMap[p.userId];
+      return mapPrototype(p, u?.username ?? null, u?.avatarUrl ?? null, u?.isVerified ?? false, likeCounts[p.id] ?? 0, likedSet.has(p.id), true);
+    }),
+  });
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+async function getLikeCount(prototypeId: number): Promise<number> {
+  const [{ count }] = await db
+    .select({ count: sql<number>`cast(count(*) as integer)` })
+    .from(likesTable)
+    .where(eq(likesTable.prototypeId, prototypeId));
+  return count ?? 0;
+}
+
+async function getLikeCounts(prototypeIds: number[]): Promise<Record<number, number>> {
+  if (prototypeIds.length === 0) return {};
+  const rows = await db
+    .select({ prototypeId: likesTable.prototypeId, count: sql<number>`cast(count(*) as integer)` })
+    .from(likesTable)
+    .where(inArray(likesTable.prototypeId, prototypeIds))
+    .groupBy(likesTable.prototypeId);
+  return Object.fromEntries(rows.map(r => [r.prototypeId, r.count]));
+}
+
+async function checkLiked(userId: number, prototypeId: number): Promise<boolean> {
+  const rows = await db.select().from(likesTable)
+    .where(and(eq(likesTable.userId, userId), eq(likesTable.prototypeId, prototypeId)));
+  return rows.length > 0;
+}
+
+async function getLikedSet(userId: number, prototypeIds: number[]): Promise<Set<number>> {
+  if (prototypeIds.length === 0) return new Set();
+  const rows = await db.select({ prototypeId: likesTable.prototypeId })
+    .from(likesTable)
+    .where(and(eq(likesTable.userId, userId), inArray(likesTable.prototypeId, prototypeIds)));
+  return new Set(rows.map(r => r.prototypeId));
+}
+
+async function getSavedSet(userId: number, prototypeIds: number[]): Promise<Set<number>> {
+  if (prototypeIds.length === 0) return new Set();
+  const rows = await db.select({ prototypeId: savesTable.prototypeId })
+    .from(savesTable)
+    .where(and(eq(savesTable.userId, userId), inArray(savesTable.prototypeId, prototypeIds)));
+  return new Set(rows.map(r => r.prototypeId));
+}
+
+async function checkSaved(userId: number, prototypeId: number): Promise<boolean> {
+  const rows = await db.select().from(savesTable)
+    .where(and(eq(savesTable.userId, userId), eq(savesTable.prototypeId, prototypeId)));
+  return rows.length > 0;
+}
+
 // Seeded pseudo-random (mulberry32) — same seed → same order within a session
 function mulberry32(seed: number) {
   return function () {
@@ -194,7 +389,7 @@ router.get("/feed", async (req, res): Promise<void> => {
   }
   const { q, limit = 20, offset = 0 } = parsed.data;
 
-  // Optional viewer — used to boost posts from followed users
+  // Optional viewer — used to boost posts from followed users and show like/save state
   const viewerId = req.query.viewerId ? Number(req.query.viewerId) : null;
 
   // Fetch who the viewer follows (empty set if not logged in)
@@ -245,11 +440,24 @@ router.get("/feed", async (req, res): Promise<void> => {
       : [];
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
 
+  const protoIds = ranked.map(p => p.id);
+  const likeCounts = await getLikeCounts(protoIds);
+  const likedSet = viewerId ? await getLikedSet(viewerId, protoIds) : new Set<number>();
+  const savedSet = viewerId ? await getSavedSet(viewerId, protoIds) : new Set<number>();
+
   res.json({
     total,
     items: ranked.map((p) => {
       const u = userMap[p.userId];
-      return mapPrototype(p, u?.username ?? null, u?.avatarUrl ?? null, u?.isVerified ?? false);
+      return mapPrototype(
+        p,
+        u?.username ?? null,
+        u?.avatarUrl ?? null,
+        u?.isVerified ?? false,
+        likeCounts[p.id] ?? 0,
+        likedSet.has(p.id),
+        savedSet.has(p.id),
+      );
     }),
   });
 });
@@ -275,6 +483,9 @@ function mapPrototype(
   username: string | null,
   creatorAvatarUrl: string | null = null,
   creatorIsVerified: boolean = false,
+  likeCount: number = 0,
+  isLiked: boolean = false,
+  isSaved: boolean = false,
 ) {
   return {
     id: p.id,
@@ -294,6 +505,9 @@ function mapPrototype(
     category: p.category,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
+    likeCount,
+    isLiked,
+    isSaved,
   };
 }
 

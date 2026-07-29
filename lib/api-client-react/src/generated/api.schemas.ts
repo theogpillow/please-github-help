@@ -108,6 +108,18 @@ export interface Prototype {
   category?: string | null;
   createdAt: string;
   updatedAt: string;
+  likeCount?: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
+}
+
+export interface LikeInput {
+  userId: number;
+}
+
+export interface LikeStatus {
+  likeCount: number;
+  isLiked: boolean;
 }
 
 export interface PrototypeInput {
@@ -303,6 +315,18 @@ export type ListUsersParams = {
  * Optional search term
  */
 q?: string;
+};
+
+export type UnlikePrototypeParams = {
+userId: number;
+};
+
+export type UnsavePrototypeParams = {
+userId: number;
+};
+
+export type GetSavesParams = {
+userId: number;
 };
 
 export type GetFeedParams = {

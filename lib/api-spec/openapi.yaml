@@ -400,6 +400,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/Prototype"
 
+  /prototypes/{id}/like:
+    post:
+      operationId: likePrototype
+      tags: [prototypes]
+      summary: Like a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LikeInput"
+      responses:
+        "200":
+          description: Like recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeStatus"
+        "409":
+          description: Already liked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unlikePrototype
+      tags: [prototypes]
+      summary: Unlike a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Like removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeStatus"
+
+  /prototypes/{id}/save:
+    post:
+      operationId: savePrototype
+      tags: [prototypes]
+      summary: Save (bookmark) a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LikeInput"
+      responses:
+        "200":
+          description: Save recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "409":
+          description: Already saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unsavePrototype
+      tags: [prototypes]
+      summary: Unsave (unbookmark) a prototype
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Save removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /saves:
+    get:
+      operationId: getSaves
+      tags: [prototypes]
+      summary: Get saved prototypes for a user
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Saved prototypes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResponse"
+
   # ── Feed ────────────────────────────────────────────────
   /feed:
     get:
@@ -697,6 +815,22 @@ components:
         category: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
+        likeCount: { type: integer }
+        isLiked: { type: boolean }
+        isSaved: { type: boolean }
+
+    LikeInput:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: integer }
+
+    LikeStatus:
+      type: object
+      required: [likeCount, isLiked]
+      properties:
+        likeCount: { type: integer }
+        isLiked: { type: boolean }
 
     PrototypeInput:
       type: object

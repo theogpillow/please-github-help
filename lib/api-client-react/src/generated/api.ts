@@ -31,8 +31,11 @@ import type {
   FollowInput,
   GenerateInput,
   GetFeedParams,
+  GetSavesParams,
   HealthStatus,
   IsFollowingResponse,
+  LikeInput,
+  LikeStatus,
   ListConversationsParams,
   ListUsersParams,
   LoginInput,
@@ -44,6 +47,8 @@ import type {
   PrototypePatch,
   ReportCreated,
   ReportInput,
+  UnlikePrototypeParams,
+  UnsavePrototypeParams,
   User,
   UserInput,
   UserPatch,
@@ -1419,6 +1424,394 @@ export const useGeneratePrototype = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getGeneratePrototypeMutationOptions(options));
     }
+
+export const getLikePrototypeUrl = (id: number,) => {
+
+
+
+
+  return `/api/prototypes/${id}/like`
+}
+
+/**
+ * @summary Like a prototype
+ */
+export const likePrototype = async (id: number,
+    likeInput: LikeInput, options?: RequestInit): Promise<LikeStatus> => {
+
+  return customFetch<LikeStatus>(getLikePrototypeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(likeInput)
+  }
+);}
+
+
+
+
+
+export const getLikePrototypeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext> => {
+
+const mutationKey = ['likePrototype'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likePrototype>>, {id: number;data: BodyType<LikeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  likePrototype(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikePrototypeMutationResult = NonNullable<Awaited<ReturnType<typeof likePrototype>>>
+    export type LikePrototypeMutationBody = BodyType<LikeInput>
+    export type LikePrototypeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Like a prototype
+ */
+export const useLikePrototype = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof likePrototype>>,
+        TError,
+        {id: number;data: BodyType<LikeInput>},
+        TContext
+      > => {
+      return useMutation(getLikePrototypeMutationOptions(options));
+    }
+
+export const getUnlikePrototypeUrl = (id: number,
+    params: UnlikePrototypeParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/prototypes/${id}/like?${stringifiedParams}` : `/api/prototypes/${id}/like`
+}
+
+/**
+ * @summary Unlike a prototype
+ */
+export const unlikePrototype = async (id: number,
+    params: UnlikePrototypeParams, options?: RequestInit): Promise<LikeStatus> => {
+
+  return customFetch<LikeStatus>(getUnlikePrototypeUrl(id,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikePrototypeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikePrototype>>, TError,{id: number;params: UnlikePrototypeParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikePrototype>>, TError,{id: number;params: UnlikePrototypeParams}, TContext> => {
+
+const mutationKey = ['unlikePrototype'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikePrototype>>, {id: number;params: UnlikePrototypeParams}> = (props) => {
+          const {id,params} = props ?? {};
+
+          return  unlikePrototype(id,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikePrototypeMutationResult = NonNullable<Awaited<ReturnType<typeof unlikePrototype>>>
+
+    export type UnlikePrototypeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unlike a prototype
+ */
+export const useUnlikePrototype = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikePrototype>>, TError,{id: number;params: UnlikePrototypeParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unlikePrototype>>,
+        TError,
+        {id: number;params: UnlikePrototypeParams},
+        TContext
+      > => {
+      return useMutation(getUnlikePrototypeMutationOptions(options));
+    }
+
+export const getSavePrototypeUrl = (id: number,) => {
+
+
+
+
+  return `/api/prototypes/${id}/save`
+}
+
+/**
+ * @summary Save (bookmark) a prototype
+ */
+export const savePrototype = async (id: number,
+    likeInput: LikeInput, options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getSavePrototypeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(likeInput)
+  }
+);}
+
+
+
+
+
+export const getSavePrototypeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof savePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext> => {
+
+const mutationKey = ['savePrototype'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePrototype>>, {id: number;data: BodyType<LikeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  savePrototype(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePrototypeMutationResult = NonNullable<Awaited<ReturnType<typeof savePrototype>>>
+    export type SavePrototypeMutationBody = BodyType<LikeInput>
+    export type SavePrototypeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save (bookmark) a prototype
+ */
+export const useSavePrototype = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePrototype>>, TError,{id: number;data: BodyType<LikeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof savePrototype>>,
+        TError,
+        {id: number;data: BodyType<LikeInput>},
+        TContext
+      > => {
+      return useMutation(getSavePrototypeMutationOptions(options));
+    }
+
+export const getUnsavePrototypeUrl = (id: number,
+    params: UnsavePrototypeParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/prototypes/${id}/save?${stringifiedParams}` : `/api/prototypes/${id}/save`
+}
+
+/**
+ * @summary Unsave (unbookmark) a prototype
+ */
+export const unsavePrototype = async (id: number,
+    params: UnsavePrototypeParams, options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getUnsavePrototypeUrl(id,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnsavePrototypeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsavePrototype>>, TError,{id: number;params: UnsavePrototypeParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsavePrototype>>, TError,{id: number;params: UnsavePrototypeParams}, TContext> => {
+
+const mutationKey = ['unsavePrototype'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsavePrototype>>, {id: number;params: UnsavePrototypeParams}> = (props) => {
+          const {id,params} = props ?? {};
+
+          return  unsavePrototype(id,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsavePrototypeMutationResult = NonNullable<Awaited<ReturnType<typeof unsavePrototype>>>
+
+    export type UnsavePrototypeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unsave (unbookmark) a prototype
+ */
+export const useUnsavePrototype = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsavePrototype>>, TError,{id: number;params: UnsavePrototypeParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unsavePrototype>>,
+        TError,
+        {id: number;params: UnsavePrototypeParams},
+        TContext
+      > => {
+      return useMutation(getUnsavePrototypeMutationOptions(options));
+    }
+
+export const getGetSavesUrl = (params: GetSavesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/saves?${stringifiedParams}` : `/api/saves`
+}
+
+/**
+ * @summary Get saved prototypes for a user
+ */
+export const getSaves = async (params: GetSavesParams, options?: RequestInit): Promise<FeedResponse> => {
+
+  return customFetch<FeedResponse>(getGetSavesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavesQueryKey = (params?: GetSavesParams,) => {
+    return [
+    `/api/saves`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSavesQueryOptions = <TData = Awaited<ReturnType<typeof getSaves>>, TError = ErrorType<unknown>>(params: GetSavesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSaves>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSaves>>> = ({ signal }) => getSaves(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSaves>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSavesQueryResult = NonNullable<Awaited<ReturnType<typeof getSaves>>>
+export type GetSavesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get saved prototypes for a user
+ */
+
+export function useGetSaves<TData = Awaited<ReturnType<typeof getSaves>>, TError = ErrorType<unknown>>(
+ params: GetSavesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSaves>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSavesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetFeedUrl = (params?: GetFeedParams,) => {
   const normalizedParams = new URLSearchParams();

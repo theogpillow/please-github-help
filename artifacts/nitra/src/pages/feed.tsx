@@ -6,14 +6,20 @@ import {
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { ReportModal } from '@/components/report-modal';
-import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
 import { FollowButton } from '@/components/follow-button';
 import { ShareModal } from '@/components/share-modal';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/user-avatar';
-import { useGetFeed, useGetFeedStats } from '@workspace/api-client-react';
+import {
+  useGetFeed,
+  useGetFeedStats,
+  useLikePrototype,
+  useUnlikePrototype,
+  useSavePrototype,
+  useUnsavePrototype,
+} from '@workspace/api-client-react';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import type { Prototype } from '@workspace/api-client-react';
@@ -33,13 +39,21 @@ function getGradient(id: number) {
 }
 
 function FeedCard({ prototype, index }: { prototype: Prototype; index: number }) {
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(() => isSaved(prototype.id));
+  const currentUser = getCurrentUser();
+
+  const [liked, setLiked] = useState(prototype.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(prototype.likeCount ?? 0);
+  const [saved, setSaved] = useState(prototype.isSaved ?? false);
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [, setLocation] = useLocation();
+
+  const likeMutation = useLikePrototype();
+  const unlikeMutation = useUnlikePrototype();
+  const saveMutation = useSavePrototype();
+  const unsaveMutation = useUnsavePrototype();
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -49,13 +63,45 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
     else { audio.play(); setIsPlaying(true); }
   };
 
-  const handleSave = () => {
-    if (saved) {
-      unsavePrototype(prototype.id);
-      setSaved(false);
+  const handleLike = () => {
+    if (!currentUser) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount(c => Math.max(0, c - 1));
+      unlikeMutation.mutate(
+        { id: prototype.id, params: { userId: currentUser.id } },
+        {
+          onSuccess: (data) => { setLikeCount(data.likeCount); setLiked(data.isLiked); },
+          onError: () => { setLiked(true); setLikeCount(c => c + 1); },
+        },
+      );
     } else {
-      savePrototype(prototype);
+      setLiked(true);
+      setLikeCount(c => c + 1);
+      likeMutation.mutate(
+        { id: prototype.id, data: { userId: currentUser.id } },
+        {
+          onSuccess: (data) => { setLikeCount(data.likeCount); setLiked(data.isLiked); },
+          onError: () => { setLiked(false); setLikeCount(c => Math.max(0, c - 1)); },
+        },
+      );
+    }
+  };
+
+  const handleSave = () => {
+    if (!currentUser) return;
+    if (saved) {
+      setSaved(false);
+      unsaveMutation.mutate(
+        { id: prototype.id, params: { userId: currentUser.id } },
+        { onError: () => setSaved(true) },
+      );
+    } else {
       setSaved(true);
+      saveMutation.mutate(
+        { id: prototype.id, data: { userId: currentUser.id } },
+        { onError: () => setSaved(false) },
+      );
     }
   };
 
@@ -223,9 +269,9 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
       <div className="hidden md:flex w-20 shrink-0 flex-col items-center justify-start gap-6 pt-8 pb-4 border-l border-border bg-background">
         <ActionBtn
           icon={<Heart className={`h-5 w-5 transition-colors ${liked ? 'fill-red-500 text-red-500' : ''}`} />}
-          label="Like"
+          label={likeCount > 0 ? String(likeCount) : 'Like'}
           active={liked}
-          onClick={() => setLiked(v => !v)}
+          onClick={handleLike}
         />
         <ActionBtn
           icon={<MessageSquare className="h-5 w-5" />}
@@ -254,8 +300,8 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
       <div className="md:hidden flex items-center justify-around px-4 py-2 border-t border-border bg-background/90 backdrop-blur-sm">
         <MobileActionBtn
           icon={<Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />}
-          label="Like"
-          onClick={() => setLiked(v => !v)}
+          label={likeCount > 0 ? String(likeCount) : 'Like'}
+          onClick={handleLike}
         />
         <MobileActionBtn
           icon={<MessageSquare className="h-5 w-5" />}

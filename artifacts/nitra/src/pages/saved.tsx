@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Bookmark, Sparkles, Trash2, ExternalLink, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/user-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatRelativeTime } from '@/lib/format';
-import { getSaved, unsavePrototype } from '@/lib/saved';
+import { useGetSaves, useUnsavePrototype } from '@workspace/api-client-react';
+import { getCurrentUser } from '@/lib/auth';
 import type { Prototype } from '@workspace/api-client-react';
 
 const GRADIENTS = [
@@ -83,16 +84,39 @@ function SavedCard({ prototype, onRemove }: { prototype: Prototype; onRemove: ()
 }
 
 export default function Saved() {
-  const [saved, setSaved] = useState<Prototype[]>([]);
+  const currentUser = getCurrentUser();
+  const { data, isLoading, refetch } = useGetSaves(
+    { userId: currentUser?.id ?? 0 },
+    { query: { enabled: !!currentUser, queryKey: ['saves', currentUser?.id] } },
+  );
+  const unsaveMutation = useUnsavePrototype();
 
-  useEffect(() => {
-    setSaved(getSaved());
-  }, []);
+  const saved = data?.items ?? [];
 
   const handleRemove = (id: number) => {
-    unsavePrototype(id);
-    setSaved(prev => prev.filter(p => p.id !== id));
+    if (!currentUser) return;
+    unsaveMutation.mutate(
+      { id, params: { userId: currentUser.id } },
+      { onSuccess: () => refetch() },
+    );
   };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-[100dvh] pt-20 pb-24 md:pb-8 px-4 md:px-6 flex flex-col items-center justify-center gap-4 text-center">
+        <Bookmark className="h-16 w-16 text-muted-foreground/40" />
+        <div>
+          <h3 className="text-xl font-semibold">Sign in to see your saves</h3>
+          <p className="text-muted-foreground mt-1 text-sm">Log in to access your saved prototypes from any device.</p>
+        </div>
+        <Link href="/login">
+          <button className="mt-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors">
+            Sign In
+          </button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] pt-20 pb-24 md:pb-8 px-4 md:px-6 animate-fade-in">
@@ -106,9 +130,11 @@ export default function Saved() {
               Saved Videos
             </h1>
             <p className="text-muted-foreground mt-1">
-              {saved.length === 0
-                ? 'Nothing saved yet'
-                : `${saved.length} saved prototype${saved.length === 1 ? '' : 's'}`}
+              {isLoading
+                ? 'Loading…'
+                : saved.length === 0
+                  ? 'Nothing saved yet'
+                  : `${saved.length} saved prototype${saved.length === 1 ? '' : 's'}`}
             </p>
           </div>
           <Link href="/feed">
@@ -119,7 +145,19 @@ export default function Saved() {
         </div>
 
         {/* Gallery grid */}
-        {saved.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-xl overflow-hidden border border-border bg-background flex flex-col">
+                <Skeleton className="aspect-video w-full" />
+                <div className="p-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : saved.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {saved.map(proto => (
               <SavedCard
