@@ -175,26 +175,37 @@ function SongPicker({
           )}
 
           {!searching && results.length > 0 && (
-            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+            <div className="rounded-xl border border-border overflow-hidden divide-y divide-border max-h-80 overflow-y-auto">
               {results.map(track => (
-                <div key={track.trackId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/60 transition-colors group">
-                  <img src={track.artworkUrl100} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                <div
+                  key={track.trackId}
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-muted/50 transition-colors"
+                >
+                  {/* Album art */}
+                  <img
+                    src={track.artworkUrl100}
+                    alt={track.collectionName}
+                    className="h-12 w-12 rounded-lg object-cover shrink-0 shadow-sm"
+                  />
+                  {/* Song info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{track.trackName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{track.artistName}</p>
+                    <p className="text-sm font-semibold truncate leading-tight">{track.trackName}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{track.artistName}</p>
+                    <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{track.collectionName}</p>
                   </div>
-                  <div className="flex gap-1.5 shrink-0">
+                  {/* Actions */}
+                  <div className="flex flex-col gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => togglePreview(track)}
-                      className="px-2.5 py-1 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors text-center"
                     >
-                      {playingId === track.trackId ? '⏸ Stop' : '▶ Preview'}
+                      {playingId === track.trackId ? '⏸ Stop' : '▶ Play'}
                     </button>
                     <button
                       type="button"
                       onClick={() => selectTrack(track)}
-                      className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-center"
                     >
                       Select
                     </button>
