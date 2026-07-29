@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, ilike, and, sql, or } from "drizzle-orm";
-import { db, prototypesTable, usersTable } from "@workspace/db";
+import { db, prototypesTable, usersTable, followsTable } from "@workspace/db";
 import {
   CreatePrototypeBody,
   GetPrototypeParams,
@@ -156,6 +156,7 @@ function algorithmicScore(
   p: typeof prototypesTable.$inferSelect,
   rand: () => number,
   nowMs: number,
+  followedUserIds: Set<number>,
 ): number {
   const ageHours = (nowMs - new Date(p.createdAt).getTime()) / 3_600_000;
   // Recency: score decays over ~168 hours (1 week), posts < 24h get big boost
@@ -164,10 +165,12 @@ function algorithmicScore(
   const hasMedia = p.imageUrl || p.mediaUrls ? 1.4 : 1.0;
   // Description bonus: posts with description rank higher
   const hasDesc = p.description ? 1.1 : 1.0;
+  // Follow boost: posts from people you follow appear ~2.5× more often
+  const followBoost = followedUserIds.has(p.userId) ? 2.5 : 1.0;
   // Random salt: ±30% so each page load shuffles things up
   const randomSalt = 0.7 + rand() * 0.6;
 
-  return recencyScore * hasMedia * hasDesc * randomSalt;
+  return recencyScore * hasMedia * hasDesc * followBoost * randomSalt;
 }
 
 // Get feed
@@ -178,6 +181,19 @@ router.get("/feed", async (req, res): Promise<void> => {
     return;
   }
   const { q, limit = 20, offset = 0 } = parsed.data;
+
+  // Optional viewer — used to boost posts from followed users
+  const viewerId = req.query.viewerId ? Number(req.query.viewerId) : null;
+
+  // Fetch who the viewer follows (empty set if not logged in)
+  const followedUserIds = new Set<number>();
+  if (viewerId && !isNaN(viewerId)) {
+    const rows = await db
+      .select({ followingId: followsTable.followingId })
+      .from(followsTable)
+      .where(eq(followsTable.followerId, viewerId));
+    for (const r of rows) followedUserIds.add(r.followingId);
+  }
 
   const baseWhere = q
     ? and(
@@ -201,7 +217,7 @@ router.get("/feed", async (req, res): Promise<void> => {
   const nowMs = Date.now();
 
   const ranked = allProtos
-    .map((p) => ({ p, score: algorithmicScore(p, rand, nowMs) }))
+    .map((p) => ({ p, score: algorithmicScore(p, rand, nowMs, followedUserIds) }))
     .sort((a, b) => b.score - a.score)
     .map(({ p }) => p)
     .slice(offset, offset + limit);

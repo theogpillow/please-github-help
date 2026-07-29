@@ -274,7 +274,11 @@ function MobileActionBtn({
 export default function Feed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const { data: feedData, isLoading: feedLoading } = useGetFeed({ q: searchQuery || undefined });
+  const currentUser = getCurrentUser();
+  const { data: feedData, isLoading: feedLoading } = useGetFeed({
+    q: searchQuery || undefined,
+    viewerId: currentUser?.id,
+  });
   const { data: stats } = useGetFeedStats();
 
   const items = feedData?.items ?? [];

@@ -207,6 +207,8 @@ export type GetFeedParams = {
 q?: string;
 limit?: number;
 offset?: number;
+/** Logged-in user ID for personalised ranking */
+viewerId?: number;
 };
 
 export type ListConversationsParams = {

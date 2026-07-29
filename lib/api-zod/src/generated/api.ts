@@ -390,7 +390,8 @@ export const getFeedQueryOffsetDefault = 0;
 export const GetFeedQueryParams = zod.object({
   "q": zod.coerce.string().optional().describe('Search term'),
   "limit": zod.coerce.number().default(getFeedQueryLimitDefault),
-  "offset": zod.coerce.number().default(getFeedQueryOffsetDefault)
+  "offset": zod.coerce.number().default(getFeedQueryOffsetDefault),
+  "viewerId": zod.coerce.number().optional().describe('Logged-in user ID for personalised ranking')
 })
 
 export const GetFeedResponse = zod.object({
