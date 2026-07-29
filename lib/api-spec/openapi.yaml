@@ -522,6 +522,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/Message"
 
+  # ── Reports ─────────────────────────────────────────────
+  /reports:
+    post:
+      operationId: createReport
+      tags: [prototypes]
+      summary: Report a prototype
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportCreated"
+        "409":
+          description: Already reported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # ── AI Feedback ──────────────────────────────────────────
   /feedback/investor:
     post:
@@ -854,6 +880,21 @@ components:
         isVerified: { type: boolean }
         isBanned: { type: boolean }
         createdAt: { type: string }
+
+    ReportInput:
+      type: object
+      required: [prototypeId, reporterId, reason]
+      properties:
+        prototypeId: { type: integer }
+        reporterId: { type: integer }
+        reason: { type: string, enum: [Spam, Inappropriate, Misleading, Other] }
+
+    ReportCreated:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: integer }
+        status: { type: string }
 
     AppSettings:
       type: object

@@ -275,6 +275,27 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export type ReportInputReason = typeof ReportInputReason[keyof typeof ReportInputReason];
+
+
+export const ReportInputReason = {
+  Spam: 'Spam',
+  Inappropriate: 'Inappropriate',
+  Misleading: 'Misleading',
+  Other: 'Other',
+} as const;
+
+export interface ReportInput {
+  prototypeId: number;
+  reporterId: number;
+  reason: ReportInputReason;
+}
+
+export interface ReportCreated {
+  id: number;
+  status: string;
+}
+
 export interface AppSettings {[key: string]: string}
 
 export type ListUsersParams = {

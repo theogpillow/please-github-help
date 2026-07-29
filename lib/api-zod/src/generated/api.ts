@@ -565,6 +565,21 @@ export const SendMessageResponse = zod.object({
 
 
 /**
+ * @summary Report a prototype
+ */
+export const CreateReportBody = zod.object({
+  "prototypeId": zod.number(),
+  "reporterId": zod.number(),
+  "reason": zod.enum(['Spam', 'Inappropriate', 'Misleading', 'Other'])
+})
+
+export const CreateReportResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.string()
+})
+
+
+/**
  * @summary Get investor-mode AI feedback on a company idea
  */
 
