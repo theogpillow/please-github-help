@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { AtSign, Send, CheckCircle2, Loader2, X } from 'lucide-react';
 import { UserAvatar } from '@/components/user-avatar';
+import { VerifiedBadge } from '@/components/verified-badge';
 import { getCurrentUser } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -182,7 +183,10 @@ export function ShareModal({ prototype, onClose }: ShareModalProps) {
                 >
                   <UserAvatar username={user.username} avatarUrl={user.avatarUrl} className="h-10 w-10 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">@{user.username}</p>
+                    <p className="text-sm font-medium truncate flex items-center gap-1">
+                      @{user.username}
+                      {user.isVerified && <VerifiedBadge size="sm" showTooltip={false} />}
+                    </p>
                     <p className="text-xs text-muted-foreground">Tap to send post</p>
                   </div>
                   <div className="shrink-0">

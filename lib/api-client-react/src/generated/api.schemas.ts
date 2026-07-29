@@ -225,6 +225,8 @@ export interface Conversation {
   initiatorUsername?: string | null;
   /** @nullable */
   recipientUsername?: string | null;
+  initiatorIsVerified?: boolean;
+  recipientIsVerified?: boolean;
   /** @nullable */
   lastMessage?: string | null;
   /** @nullable */
@@ -243,6 +245,7 @@ export interface Message {
   senderId: number;
   /** @nullable */
   senderUsername?: string | null;
+  senderIsVerified?: boolean;
   content: string;
   createdAt: string;
 }

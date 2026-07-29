@@ -453,6 +453,8 @@ export const ListConversationsResponseItem = zod.object({
   "recipientId": zod.number(),
   "initiatorUsername": zod.string().nullish(),
   "recipientUsername": zod.string().nullish(),
+  "initiatorIsVerified": zod.boolean().optional(),
+  "recipientIsVerified": zod.boolean().optional(),
   "lastMessage": zod.string().nullish(),
   "lastMessageAt": zod.string().nullish(),
   "createdAt": zod.string()
@@ -474,6 +476,8 @@ export const CreateConversationResponse = zod.object({
   "recipientId": zod.number(),
   "initiatorUsername": zod.string().nullish(),
   "recipientUsername": zod.string().nullish(),
+  "initiatorIsVerified": zod.boolean().optional(),
+  "recipientIsVerified": zod.boolean().optional(),
   "lastMessage": zod.string().nullish(),
   "lastMessageAt": zod.string().nullish(),
   "createdAt": zod.string()
@@ -492,6 +496,7 @@ export const ListMessagesResponseItem = zod.object({
   "conversationId": zod.number(),
   "senderId": zod.number(),
   "senderUsername": zod.string().nullish(),
+  "senderIsVerified": zod.boolean().optional(),
   "content": zod.string(),
   "createdAt": zod.string()
 })

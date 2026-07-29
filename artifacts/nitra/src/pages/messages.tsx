@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UserAvatar } from '@/components/user-avatar';
+import { VerifiedBadge } from '@/components/verified-badge';
 import { useListConversations, useListMessages, useSendMessage, useCreateConversation, useListUsers, useGetUser, getListConversationsQueryKey, getListMessagesQueryKey, getListUsersQueryKey, getGetUserQueryKey } from '@workspace/api-client-react';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
@@ -233,6 +234,12 @@ export default function Messages() {
       : convo.initiatorUsername;
   };
 
+  const otherIsVerified = (convo: Conversation) => {
+    return convo.initiatorId === currentUser.id
+      ? convo.recipientIsVerified
+      : convo.initiatorIsVerified;
+  };
+
   return (
     <div className="min-h-[100dvh] pt-20 pb-24 md:pb-8 px-4 md:px-6 animate-fade-in">
       <div className="max-w-6xl mx-auto">
@@ -344,7 +351,10 @@ export default function Messages() {
                     >
                       <UserAvatar username={otherUsername(convo) || 'U'} className="h-10 w-10 shrink-0" />
                       <div className="flex-1 text-left min-w-0">
-                        <p className="font-medium truncate">{otherUsername(convo)}</p>
+                        <p className="font-medium truncate flex items-center gap-1">
+                          {otherUsername(convo)}
+                          {otherIsVerified(convo) && <VerifiedBadge size="sm" showTooltip={false} />}
+                        </p>
                         {convo.lastMessage && (
                           <p className="text-sm text-muted-foreground truncate">
                             {previewLastMsg(convo.lastMessage)}
@@ -375,6 +385,7 @@ export default function Messages() {
                   <CardTitle className="flex items-center gap-3">
                     <UserAvatar username={otherUsername(selectedConversation) || 'U'} className="h-8 w-8" />
                     {otherUsername(selectedConversation)}
+                    {otherIsVerified(selectedConversation) && <VerifiedBadge size="md" />}
                   </CardTitle>
                 </CardHeader>
                 <ScrollArea className="flex-1 p-4">
@@ -395,6 +406,12 @@ export default function Messages() {
                             data-testid={`message-${msg.id}`}
                             className={`flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}
                           >
+                            {!isOwn && msg.senderUsername && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-0.5">
+                                @{msg.senderUsername}
+                                {msg.senderIsVerified && <VerifiedBadge size="sm" showTooltip={false} />}
+                              </p>
+                            )}
                             {shareData ? (
                               <ShareCard
                                 share={shareData}
