@@ -32,7 +32,7 @@ function buildSharePayload(p: Prototype): string {
     audioUrl: p.audioUrl ?? null,
     category: p.category ?? null,
     creatorUsername: p.username ?? null,
-    creatorIsVerified: p.creatorIsVerified ?? p.isVerified ?? false,
+    creatorIsVerified: p.creatorIsVerified ?? false,
   });
 }
 

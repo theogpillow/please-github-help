@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and, sql, count } from "drizzle-orm";
+import { eq, desc, and, sql, count, ilike } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -168,12 +168,14 @@ router.patch("/admin/reports/:id", async (req, res): Promise<void> => {
 });
 
 // ─── User management ───────────────────────────────────────────────
-router.get("/admin/users", async (_req, res): Promise<void> => {
+router.get("/admin/users", async (req, res): Promise<void> => {
+  const search = (req.query.search as string | undefined)?.trim();
   const users = await db
     .select()
     .from(usersTable)
+    .where(search ? ilike(usersTable.username, `%${search}%`) : undefined)
     .orderBy(desc(usersTable.createdAt))
-    .limit(500);
+    .limit(200);
   res.json(
     users.map((u) => ({
       id: u.id,

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Shield, Users, FileText, Flag, BarChart3, CheckCircle, XCircle, EyeOff, Trash2, Ban, Eye, Settings, BadgeCheck, RotateCcw, Loader2, ChevronRight } from 'lucide-react';
+import { Shield, Users, FileText, Flag, BarChart3, CheckCircle, XCircle, EyeOff, Trash2, Ban, Eye, Settings, BadgeCheck, RotateCcw, Loader2, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { UserAvatar } from '@/components/user-avatar';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
-import type { AdminStats, AdminVerificationRequest, AdminPost, AdminReport, AdminUser, AppSettings } from '@workspace/api-client-react';
+import type { AdminStats, AdminPost, AdminReport, AdminUser, AppSettings } from '@workspace/api-client-react';
 
 type Tab = 'overview' | 'verification' | 'posts' | 'reports' | 'users';
 
@@ -68,63 +68,84 @@ function OverviewTab({ userId }: { userId: number }) {
 function VerificationTab({ userId }: { userId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: requests = [], isLoading } = useQuery<AdminVerificationRequest[]>({
-    queryKey: ['admin', 'verification-requests'],
-    queryFn: () => adminFetch('/admin/verification-requests', userId),
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+
+  const { data: users = [], isLoading } = useQuery<AdminUser[]>({
+    queryKey: ['admin', 'users-verify', search],
+    queryFn: () => adminFetch(`/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`, userId),
+    enabled: search.length > 0,
   });
 
-  const actMutation = useMutation({
-    mutationFn: ({ id, action }: { id: number; action: 'approve' | 'reject' }) =>
-      adminFetch(`/admin/verification-requests/${id}`, userId, {
-        method: 'PATCH',
-        body: JSON.stringify({ action }),
-      }),
+  const patchUser = useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Record<string, unknown> }) =>
+      adminFetch(`/admin/users/${id}`, userId, { method: 'PATCH', body: JSON.stringify(patch) }),
     onSuccess: (_d, vars) => {
-      toast({ title: vars.action === 'approve' ? 'Verification approved ✓' : 'Request rejected' });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'verification-requests'] });
+      const isVerifying = (vars.patch as { isVerified?: boolean }).isVerified;
+      toast({ title: isVerifying ? 'User verified ✓' : 'Verification removed' });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-verify'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
     },
   });
 
-  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-
-  if (!requests.length)
-    return <p className="text-center text-muted-foreground py-16">No pending verification requests.</p>;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(query.trim());
+  };
 
   return (
-    <div className="space-y-3">
-      {requests.map((r) => (
-        <Card key={r.id}>
-          <CardContent className="pt-4 flex items-center gap-4">
-            <UserAvatar username={r.username ?? '?'} avatarUrl={r.avatarUrl} className="h-10 w-10 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium">@{r.username}</p>
-              <p className="text-xs text-muted-foreground">Requested {formatRelativeTime(r.createdAt)}</p>
-            </div>
-            <div className="flex gap-2 shrink-0">
+    <div className="space-y-4">
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by username…"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <Button type="submit" size="sm">Search</Button>
+      </form>
+
+      {!search && (
+        <p className="text-center text-muted-foreground py-12 text-sm">Search for a user to verify them.</p>
+      )}
+
+      {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+
+      {search && !isLoading && users.length === 0 && (
+        <p className="text-center text-muted-foreground py-8 text-sm">No users found for "{search}".</p>
+      )}
+
+      <div className="space-y-2">
+        {users.map((u) => (
+          <Card key={u.id}>
+            <CardContent className="pt-3 pb-3 flex items-center gap-3">
+              <UserAvatar username={u.username} avatarUrl={u.avatarUrl} className="h-10 w-10 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium">@{u.username}</p>
+                  {u.isAdmin && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider">Admin</span>}
+                  {u.isVerified && <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-[9px] font-bold uppercase tracking-wider">Verified</span>}
+                </div>
+                <p className="text-xs text-muted-foreground">Joined {formatRelativeTime(u.createdAt)}</p>
+              </div>
               <Button
                 size="sm"
-                onClick={() => actMutation.mutate({ id: r.id, action: 'approve' })}
-                disabled={actMutation.isPending}
-                className="gap-1"
+                variant={u.isVerified ? 'outline' : 'default'}
+                className="h-8 text-xs gap-1.5 shrink-0"
+                onClick={() => patchUser.mutate({ id: u.id, patch: { isVerified: !u.isVerified } })}
+                disabled={patchUser.isPending}
               >
-                <CheckCircle className="h-3.5 w-3.5" />
-                Approve
+                <BadgeCheck className="h-3.5 w-3.5" />
+                {u.isVerified ? 'Unverify' : 'Verify'}
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => actMutation.mutate({ id: r.id, action: 'reject' })}
-                disabled={actMutation.isPending}
-                className="gap-1"
-              >
-                <XCircle className="h-3.5 w-3.5" />
-                Reject
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -358,9 +379,12 @@ function ReportsTab({ userId }: { userId: number }) {
 function UsersTab({ userId }: { userId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+
   const { data: users = [], isLoading } = useQuery<AdminUser[]>({
-    queryKey: ['admin', 'users'],
-    queryFn: () => adminFetch('/admin/users', userId),
+    queryKey: ['admin', 'users', search],
+    queryFn: () => adminFetch(`/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`, userId),
   });
 
   const patchUser = useMutation({
@@ -369,10 +393,38 @@ function UsersTab({ userId }: { userId: number }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
   });
 
-  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(query.trim());
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by username…"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <Button type="submit" size="sm">Search</Button>
+        {search && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setQuery(''); setSearch(''); }}>
+            Clear
+          </Button>
+        )}
+      </form>
+
+      {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+      {!isLoading && users.length === 0 && (
+        <p className="text-center text-muted-foreground py-8 text-sm">{search ? `No users found for "${search}".` : 'No users yet.'}</p>
+      )}
+
+      <div className="space-y-2">
       {users.map((u) => (
         <Card key={u.id}>
           <CardContent className="pt-3 pb-3 flex items-center gap-3">
@@ -414,6 +466,7 @@ function UsersTab({ userId }: { userId: number }) {
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 }
