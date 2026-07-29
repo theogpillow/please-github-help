@@ -36,7 +36,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function Router() {
   const currentUser = getCurrentUser();
   const [location] = useLocation();
-  const showNav = currentUser && location !== '/';
+  const showNav = !!currentUser;
 
   return (
     <>
