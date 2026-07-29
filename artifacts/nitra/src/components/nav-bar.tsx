@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Home, Sparkles, MessageSquare, User, Lightbulb, Search } from 'lucide-react';
+import { Home, Sparkles, MessageSquare, User, Lightbulb, Search, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getCurrentUser } from '@/lib/auth';
@@ -55,6 +55,21 @@ export function NavBar() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            {currentUser?.isAdmin && (
+              <Link
+                href="/admin"
+                data-testid="nav-admin"
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-sm',
+                  location === '/admin'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </Link>
+            )}
             {currentUser && (
               <Link
                 href={`/profile/${currentUser.username}`}
@@ -99,6 +114,19 @@ export function NavBar() {
               </Link>
             );
           })}
+          {currentUser?.isAdmin && (
+            <Link
+              href="/admin"
+              data-testid="nav-mobile-admin"
+              className={cn(
+                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors min-w-[72px]',
+                location === '/admin' ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <Shield className="h-5 w-5" />
+              <span className="text-xs font-medium">Admin</span>
+            </Link>
+          )}
           {currentUser && (
             <Link
               href={`/profile/${currentUser.username}`}

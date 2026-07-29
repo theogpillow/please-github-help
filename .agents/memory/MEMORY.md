@@ -1,0 +1,1 @@
+- [Admin roles & moderation](admin-roles-moderation.md) — role fields, post status semantics, admin auth pattern, how to promote users to admin

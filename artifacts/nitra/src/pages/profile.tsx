@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2 } from 'lucide-react';
+import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2, BadgeCheck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import {
   getGetUserQueryKey, getGetFollowCountsQueryKey, getCheckFollowStatusQueryKey,
 } from '@workspace/api-client-react';
 import { getCurrentUser, setCurrentUser, clearCurrentUser } from '@/lib/auth';
+import { VerifiedBadge } from '@/components/verified-badge';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -44,6 +45,45 @@ export default function Profile() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [verifStatus, setVerifStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [verifLoading, setVerifLoading] = useState(false);
+  const [verifSubmitting, setVerifSubmitting] = useState(false);
+
+  // Fetch own verification request status
+  useState(() => {
+    if (currentUser && user && currentUser.id === user.id && !user.isVerified) {
+      setVerifLoading(true);
+      fetch(`/api/verification-requests/my?userId=${currentUser.id}`)
+        .then((r) => r.json())
+        .then((d) => { setVerifStatus(d.status ?? 'none'); })
+        .catch(() => {})
+        .finally(() => setVerifLoading(false));
+    }
+  });
+
+  const handleRequestVerification = async () => {
+    if (!currentUser || verifSubmitting) return;
+    setVerifSubmitting(true);
+    try {
+      const res = await fetch('/api/verification-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+      if (res.ok) {
+        setVerifStatus('pending');
+        toast({ title: 'Verification requested!', description: 'An admin will review your request.' });
+      } else if (res.status === 409) {
+        setVerifStatus('pending');
+      } else {
+        toast({ title: 'Failed to submit request', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Failed to submit request', variant: 'destructive' });
+    } finally {
+      setVerifSubmitting(false);
+    }
+  };
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [bio, setBio] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -185,7 +225,10 @@ export default function Profile() {
                 {/* Name + action buttons */}
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
-                    <h1 className="text-3xl font-bold tracking-tight font-serif">{user.username}</h1>
+                    <h1 className="text-3xl font-bold tracking-tight font-serif flex items-center gap-2">
+                      {user.username}
+                      {user.isVerified && <VerifiedBadge size="lg" />}
+                    </h1>
                     {user.bio && <p className="text-muted-foreground mt-1">{user.bio}</p>}
                   </div>
                   <div className="flex items-center gap-2">
@@ -199,6 +242,22 @@ export default function Profile() {
                         {isFollowing
                           ? <><UserCheck className="h-4 w-4" /> Following</>
                           : <><UserPlus className="h-4 w-4" /> Follow</>}
+                      </Button>
+                    )}
+                    {/* Verification request (own profile only) */}
+                    {isOwnProfile && !user.isVerified && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRequestVerification}
+                        disabled={verifSubmitting || verifLoading || verifStatus === 'pending'}
+                        className="gap-2"
+                        title={verifStatus === 'pending' ? 'Verification request pending' : 'Request verified badge'}
+                      >
+                        {verifStatus === 'pending' ? (
+                          <><Clock className="h-4 w-4" /> Pending</>
+                        ) : (
+                          <><BadgeCheck className="h-4 w-4" /> Get Verified</>
+                        )}
                       </Button>
                     )}
                     {isOwnProfile && (

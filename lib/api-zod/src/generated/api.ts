@@ -30,6 +30,9 @@ export const ListUsersResponseItem = zod.object({
   "companyName": zod.string().nullish(),
   "companyBio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isAdmin": zod.boolean().optional(),
+  "isVerified": zod.boolean().optional(),
+  "isBanned": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
@@ -58,6 +61,9 @@ export const CreateUserResponse = zod.object({
   "companyName": zod.string().nullish(),
   "companyBio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isAdmin": zod.boolean().optional(),
+  "isVerified": zod.boolean().optional(),
+  "isBanned": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 
@@ -81,6 +87,9 @@ export const LoginUserResponse = zod.object({
   "companyName": zod.string().nullish(),
   "companyBio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isAdmin": zod.boolean().optional(),
+  "isVerified": zod.boolean().optional(),
+  "isBanned": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 
@@ -99,6 +108,9 @@ export const GetUserResponse = zod.object({
   "companyName": zod.string().nullish(),
   "companyBio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isAdmin": zod.boolean().optional(),
+  "isVerified": zod.boolean().optional(),
+  "isBanned": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 
@@ -124,6 +136,9 @@ export const UpdateUserResponse = zod.object({
   "companyName": zod.string().nullish(),
   "companyBio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isAdmin": zod.boolean().optional(),
+  "isVerified": zod.boolean().optional(),
+  "isBanned": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 

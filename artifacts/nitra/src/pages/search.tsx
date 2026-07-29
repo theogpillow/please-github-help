@@ -1,25 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { AtSign, Search, Users } from 'lucide-react';
+import { AtSign, Users } from 'lucide-react';
 import { UserAvatar } from '@/components/user-avatar';
+import { VerifiedBadge } from '@/components/verified-badge';
 import { FollowButton } from '@/components/follow-button';
 import { useListUsers, useGetFollowCounts, getListUsersQueryKey } from '@workspace/api-client-react';
+import type { User } from '@workspace/api-client-react';
 
-function UserRow({ username }: { username: string }) {
-  const { data: counts } = useGetFollowCounts(username);
+function UserRow({ user }: { user: User }) {
+  const { data: counts } = useGetFollowCounts(user.username);
 
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
-      <Link href={`/profile/${username}`} className="flex items-center gap-3 flex-1 min-w-0">
-        <UserAvatar username={username} className="h-11 w-11 shrink-0" />
+      <Link href={`/profile/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <UserAvatar username={user.username} avatarUrl={user.avatarUrl} className="h-11 w-11 shrink-0" />
         <div className="min-w-0">
-          <p className="font-semibold truncate">@{username}</p>
+          <p className="font-semibold truncate flex items-center gap-1">
+            @{user.username}
+            {user.isVerified && <VerifiedBadge size="sm" />}
+          </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {counts ? `${counts.followers} follower${counts.followers !== 1 ? 's' : ''}` : ''}
           </p>
         </div>
       </Link>
-      <FollowButton username={username} size="sm" />
+      <FollowButton username={user.username} size="sm" />
     </div>
   );
 }
@@ -108,7 +113,7 @@ export default function SearchPage() {
           {query && !isFetching && results && results.length > 0 && (
             <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
               {results.map((u) => (
-                <UserRow key={u.id} username={u.username} />
+                <UserRow key={u.id} user={u} />
               ))}
             </div>
           )}

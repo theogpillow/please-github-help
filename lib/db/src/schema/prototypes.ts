@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+// status: draft (not published) | pending (awaiting pre-mod) | approved (live) | hidden (admin-hidden) | deleted (soft-deleted)
 export const prototypesTable = pgTable("prototypes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -13,6 +14,7 @@ export const prototypesTable = pgTable("prototypes", {
   mediaUrls: text("media_urls"), // JSON array of uploaded media URLs
   audioUrl: text("audio_url"),   // Single background track
   published: boolean("published").notNull().default(false),
+  status: text("status").notNull().default("approved"), // moderation status
   category: text("category"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

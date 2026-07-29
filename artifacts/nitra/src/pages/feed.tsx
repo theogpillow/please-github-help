@@ -2,8 +2,10 @@ import { useState, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Search, MessageSquare, Heart, Bookmark, Share2,
-  Sparkles, X, ExternalLink, TrendingUp, Users, Music2, Play, Pause
+  Sparkles, X, ExternalLink, TrendingUp, Users, Music2, Play, Pause, Flag
 } from 'lucide-react';
+import { VerifiedBadge } from '@/components/verified-badge';
+import { ReportModal } from '@/components/report-modal';
 import { savePrototype, unsavePrototype, isSaved } from '@/lib/saved';
 import { FollowButton } from '@/components/follow-button';
 import { ShareModal } from '@/components/share-modal';
@@ -34,6 +36,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(() => isSaved(prototype.id));
   const [shareOpen, setShareOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [, setLocation] = useLocation();
@@ -92,7 +95,10 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
             <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-7 w-7" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">@{prototype.username}</p>
+              <p className="text-sm font-medium flex items-center gap-1">
+                @{prototype.username}
+                {prototype.creatorIsVerified && <VerifiedBadge size="sm" />}
+              </p>
               <p className="text-xs text-muted-foreground">{formatRelativeTime(prototype.createdAt)}</p>
             </div>
             <FollowButton username={prototype.username} size="sm" />
@@ -166,7 +172,10 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
               {prototype.username && (
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-6 w-6 ring-1 ring-white/40" />
-                  <span className="text-white text-sm font-medium">@{prototype.username}</span>
+                  <span className="text-white text-sm font-medium flex items-center gap-1">
+                    @{prototype.username}
+                    {prototype.creatorIsVerified && <VerifiedBadge size="sm" className="text-white" showTooltip={false} />}
+                  </span>
                   <span className="text-white/50 text-xs">· {formatRelativeTime(prototype.createdAt)}</span>
                   <FollowButton username={prototype.username} size="sm" className="!border-white/40 !bg-white/20 !text-white hover:!bg-white/30 backdrop-blur-sm" />
                 </div>
@@ -234,6 +243,11 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           label="Share"
           onClick={() => setShareOpen(true)}
         />
+        <ActionBtn
+          icon={<Flag className="h-5 w-5" />}
+          label="Report"
+          onClick={() => setReportOpen(true)}
+        />
       </div>
 
       {/* Mobile horizontal action bar */}
@@ -264,8 +278,16 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
           label="Share"
           onClick={() => setShareOpen(true)}
         />
+        <MobileActionBtn
+          icon={<Flag className="h-5 w-5" />}
+          label="Report"
+          onClick={() => setReportOpen(true)}
+        />
       </div>
 
+      {reportOpen && (
+        <ReportModal prototypeId={prototype.id} prototypeTitle={prototype.title} onClose={() => setReportOpen(false)} />
+      )}
       {shareOpen && (
         <ShareModal prototype={prototype} onClose={() => setShareOpen(false)} />
       )}

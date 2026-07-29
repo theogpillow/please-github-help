@@ -58,12 +58,20 @@ router.post("/users/login", async (req, res): Promise<void> => {
       .set({ passwordHash: hash })
       .where(eq(usersTable.id, user.id))
       .returning();
+    if (updated.isBanned) {
+      res.status(403).json({ error: "Your account has been suspended. Please contact support." });
+      return;
+    }
     res.json(mapUser(updated));
     return;
   }
   const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
   if (!valid) {
     res.status(401).json({ error: "Wrong password" });
+    return;
+  }
+  if (user.isBanned) {
+    res.status(403).json({ error: "Your account has been suspended. Please contact support." });
     return;
   }
   res.json(mapUser(user));
@@ -172,6 +180,9 @@ function mapUser(u: typeof usersTable.$inferSelect) {
     companyName: u.companyName,
     companyBio: u.companyBio,
     avatarUrl: u.avatarUrl,
+    isAdmin: u.isAdmin,
+    isVerified: u.isVerified,
+    isBanned: u.isBanned,
     createdAt: u.createdAt.toISOString(),
   };
 }
@@ -186,7 +197,10 @@ function mapPrototype(p: typeof prototypesTable.$inferSelect, username?: string 
     prompt: p.prompt,
     generatedContent: p.generatedContent,
     imageUrl: p.imageUrl,
+    mediaUrls: p.mediaUrls,
+    audioUrl: p.audioUrl,
     published: p.published,
+    status: p.status,
     category: p.category,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),

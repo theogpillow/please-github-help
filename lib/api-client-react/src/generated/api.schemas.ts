@@ -24,6 +24,9 @@ export interface User {
   companyBio?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  isAdmin?: boolean;
+  isVerified?: boolean;
+  isBanned?: boolean;
   createdAt: string;
 }
 
@@ -83,6 +86,7 @@ export interface Prototype {
   username?: string | null;
   /** @nullable */
   creatorAvatarUrl?: string | null;
+  creatorIsVerified?: boolean;
   title: string;
   /** @nullable */
   description?: string | null;
@@ -98,9 +102,82 @@ export interface Prototype {
   audioUrl?: string | null;
   published: boolean;
   /** @nullable */
+  status?: string | null;
+  /** @nullable */
   category?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface VerificationStatus {
+  status: 'none' | 'pending' | 'approved' | 'rejected';
+  id?: number;
+  createdAt?: string;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalPrototypes: number;
+  pendingVerifications: number;
+  openReports: number;
+  flaggedPosts: number;
+}
+
+export interface AdminVerificationRequest {
+  id: number;
+  userId: number;
+  status: string;
+  createdAt: string;
+  username: string | null;
+  avatarUrl: string | null;
+  isVerified: boolean;
+}
+
+export interface AdminPost {
+  id: number;
+  userId: number;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  mediaUrls: string | null;
+  published: boolean;
+  status: string;
+  category: string | null;
+  createdAt: string;
+  username: string | null;
+  avatarUrl: string | null;
+}
+
+export interface AdminReport {
+  id: number;
+  prototypeId: number;
+  reporterId: number;
+  reason: string;
+  status: string;
+  createdAt: string;
+  reporterUsername: string | null;
+  prototypeTitle: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  avatarUrl: string | null;
+  isAdmin: boolean;
+  isVerified: boolean;
+  isBanned: boolean;
+  createdAt: string;
+}
+
+export interface AppSettings {
+  pre_moderation?: string;
+  [key: string]: string | undefined;
+}
+
+export interface ReportInput {
+  reporterId: number;
+  prototypeId: number;
+  reason: string;
 }
 
 export interface PrototypeInput {

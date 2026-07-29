@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, ilike, and, sql, or } from "drizzle-orm";
-import { db, prototypesTable, usersTable, followsTable } from "@workspace/db";
+import { eq, desc, ilike, and, sql, or, notInArray } from "drizzle-orm";
+import { db, prototypesTable, usersTable, followsTable, appSettingsTable } from "@workspace/db";
 import {
   CreatePrototypeBody,
   GetPrototypeParams,
@@ -24,8 +24,8 @@ router.post("/prototypes", async (req, res): Promise<void> => {
     return;
   }
   const [proto] = await db.insert(prototypesTable).values(parsed.data).returning();
-  const [user] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.status(201).json(mapPrototype(proto, user?.username ?? null));
+  const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
+  res.status(201).json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
 // Get prototype
@@ -40,8 +40,8 @@ router.get("/prototypes/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Prototype not found" });
     return;
   }
-  const [user] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.json(mapPrototype(proto, user?.username ?? null));
+  const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
+  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
 // Update prototype
@@ -61,8 +61,8 @@ router.patch("/prototypes/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Prototype not found" });
     return;
   }
-  const [user] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.json(mapPrototype(proto, user?.username ?? null));
+  const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
+  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
 // Delete prototype
@@ -80,24 +80,36 @@ router.delete("/prototypes/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-// Publish prototype
+// Publish prototype (respects pre-moderation setting)
 router.post("/prototypes/:id/publish", async (req, res): Promise<void> => {
   const params = PublishPrototypeParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
+  // Check pre-moderation setting
+  const [preMod] = await db
+    .select()
+    .from(appSettingsTable)
+    .where(eq(appSettingsTable.key, "pre_moderation"))
+    .limit(1);
+  const preModEnabled = preMod?.value === "true";
+
+  const updatePayload = preModEnabled
+    ? { published: false, status: "pending" }   // queued for review
+    : { published: true, status: "approved" };   // goes live immediately
+
   const [proto] = await db
     .update(prototypesTable)
-    .set({ published: true })
+    .set(updatePayload)
     .where(eq(prototypesTable.id, params.data.id))
     .returning();
   if (!proto) {
     res.status(404).json({ error: "Prototype not found" });
     return;
   }
-  const [user] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.json(mapPrototype(proto, user?.username ?? null));
+  const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
+  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
 // Generate AI content
@@ -138,8 +150,8 @@ router.post("/prototypes/:id/generate", async (req, res): Promise<void> => {
     .where(eq(prototypesTable.id, params.data.id))
     .returning();
 
-  const [user] = await db.select({ username: usersTable.username }).from(usersTable).where(eq(usersTable.id, proto.userId));
-  res.json(mapPrototype(proto, user?.username ?? null));
+  const [user] = await db.select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable).where(eq(usersTable.id, proto.userId));
+  res.json(mapPrototype(proto, user?.username ?? null, user?.avatarUrl ?? null, user?.isVerified ?? false));
 });
 
 // Seeded pseudo-random (mulberry32) — same seed → same order within a session
@@ -195,12 +207,16 @@ router.get("/feed", async (req, res): Promise<void> => {
     for (const r of rows) followedUserIds.add(r.followingId);
   }
 
+  const visibilityFilter = and(
+    eq(prototypesTable.published, true),
+    notInArray(prototypesTable.status, ["hidden", "deleted", "pending"]),
+  );
   const baseWhere = q
     ? and(
-        eq(prototypesTable.published, true),
+        visibilityFilter,
         or(ilike(prototypesTable.title, `%${q}%`), ilike(prototypesTable.description, `%${q}%`), ilike(prototypesTable.category, `%${q}%`)),
       )
-    : eq(prototypesTable.published, true);
+    : visibilityFilter;
 
   // Fetch all published posts (or all matching search), then rank in JS
   const allProtos = await db
@@ -225,7 +241,7 @@ router.get("/feed", async (req, res): Promise<void> => {
   const userIds = [...new Set(ranked.map((p) => p.userId))];
   const users =
     userIds.length > 0
-      ? await db.select({ id: usersTable.id, username: usersTable.username, avatarUrl: usersTable.avatarUrl }).from(usersTable)
+      ? await db.select({ id: usersTable.id, username: usersTable.username, avatarUrl: usersTable.avatarUrl, isVerified: usersTable.isVerified }).from(usersTable)
       : [];
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
 
@@ -233,7 +249,7 @@ router.get("/feed", async (req, res): Promise<void> => {
     total,
     items: ranked.map((p) => {
       const u = userMap[p.userId];
-      return mapPrototype(p, u?.username ?? null, u?.avatarUrl ?? null);
+      return mapPrototype(p, u?.username ?? null, u?.avatarUrl ?? null, u?.isVerified ?? false);
     }),
   });
 });
@@ -258,12 +274,14 @@ function mapPrototype(
   p: typeof prototypesTable.$inferSelect,
   username: string | null,
   creatorAvatarUrl: string | null = null,
+  creatorIsVerified: boolean = false,
 ) {
   return {
     id: p.id,
     userId: p.userId,
     username,
     creatorAvatarUrl,
+    creatorIsVerified,
     title: p.title,
     description: p.description,
     prompt: p.prompt,
@@ -272,6 +290,7 @@ function mapPrototype(
     mediaUrls: p.mediaUrls,
     audioUrl: p.audioUrl,
     published: p.published,
+    status: p.status,
     category: p.category,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
