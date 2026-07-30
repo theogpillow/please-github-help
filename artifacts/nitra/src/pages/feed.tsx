@@ -26,6 +26,7 @@ import type { Prototype } from '@workspace/api-client-react';
 
 // Only one audio element may play across the entire feed at a time.
 // Each card registers itself here when its IntersectionObserver fires.
+import { SignInPrompt } from '@/components/sign-in-prompt';
 let _feedCurrentAudio: HTMLAudioElement | null = null;
 
 // Gradient backgrounds when no image is available
@@ -50,6 +51,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const [saved, setSaved] = useState(prototype.isSaved ?? false);
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [signInPrompt, setSignInPrompt] = useState<'like' | 'save' | null>(null);
   const [paused, setPaused] = useState(false);
   const [flashIcon, setFlashIcon] = useState<'play' | 'pause' | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -129,7 +131,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   };
 
   const handleLike = () => {
-    if (!currentUser) return;
+    if (!currentUser) { setSignInPrompt('like'); return; }
     if (liked) {
       setLiked(false);
       setLikeCount(c => Math.max(0, c - 1));
@@ -154,7 +156,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   };
 
   const handleSave = () => {
-    if (!currentUser) return;
+    if (!currentUser) { setSignInPrompt('save'); return; }
     if (saved) {
       setSaved(false);
       unsaveMutation.mutate(
@@ -334,6 +336,9 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
       )}
       {shareOpen && (
         <ShareModal prototype={prototype} onClose={() => setShareOpen(false)} />
+      )}
+      {signInPrompt && (
+        <SignInPrompt action={signInPrompt} onClose={() => setSignInPrompt(null)} />
       )}
     </article>
   );
