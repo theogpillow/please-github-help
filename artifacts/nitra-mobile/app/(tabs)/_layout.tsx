@@ -24,6 +24,10 @@ function NativeTabLayout({ isAdmin }: { isAdmin: boolean }) {
         <Icon sf={{ default: 'plus.circle', selected: 'plus.circle.fill' }} />
         <Label>Create</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="saved">
+        <Icon sf={{ default: 'bookmark', selected: 'bookmark.fill' }} />
+        <Label>Saved</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="messages">
         <Icon sf={{ default: 'message', selected: 'message.fill' }} />
         <Label>Messages</Label>
@@ -101,6 +105,18 @@ function ClassicTabLayout({ isAdmin }: { isAdmin: boolean }) {
               <SymbolView name="plus.circle" tintColor={color} size={24} />
             ) : (
               <Feather name="plus-circle" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="bookmark" tintColor={color} size={24} />
+            ) : (
+              <Feather name="bookmark" size={22} color={color} />
             ),
         }}
       />

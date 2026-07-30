@@ -98,9 +98,9 @@ function TikTokCard({
   const router = useRouter();
   const { user } = useAuth();
 
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(prototype.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(prototype.likeCount ?? 0);
+  const [saved, setSaved] = useState(prototype.isSaved ?? false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
