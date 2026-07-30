@@ -421,7 +421,13 @@ export default function FeedScreen() {
   });
 
   useFocusEffect(
-    useCallback(() => { refetch(); }, [refetch]),
+    useCallback(() => {
+      refetch();
+      // Return cleanup: runs when the tab loses focus — stops all card audio
+      return () => {
+        setActiveIndex(-1);
+      };
+    }, [refetch]),
   );
 
   const items: Prototype[] = data?.items ?? [];

@@ -366,6 +366,16 @@ export default function Feed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const currentUser = getCurrentUser();
+
+  // Stop any playing audio when the user navigates away from the feed
+  useEffect(() => {
+    return () => {
+      if (_feedCurrentAudio) {
+        _feedCurrentAudio.pause();
+        _feedCurrentAudio = null;
+      }
+    };
+  }, []);
   const { data: feedData, isLoading: feedLoading } = useGetFeed({
     q: searchQuery || undefined,
     viewerId: currentUser?.id,
