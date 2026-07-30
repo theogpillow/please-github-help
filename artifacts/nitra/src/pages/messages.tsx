@@ -107,7 +107,8 @@ export default function Messages() {
   const [autoStarted, setAutoStarted] = useState(false);
 
   const { data: conversations, isLoading: conversationsLoading } = useListConversations(
-    currentUser ? { userId: currentUser.id } : undefined as any
+    currentUser ? { userId: currentUser.id } : undefined as any,
+    { query: { refetchInterval: 5000 } }
   );
 
   // Look up the user from the ?with= param
@@ -117,7 +118,7 @@ export default function Messages() {
   );
   const { data: messages, isLoading: messagesLoading } = useListMessages(
     selectedConversation?.id || 0,
-    { query: { enabled: !!selectedConversation, queryKey: getListMessagesQueryKey(selectedConversation?.id || 0) } }
+    { query: { enabled: !!selectedConversation, queryKey: getListMessagesQueryKey(selectedConversation?.id || 0), refetchInterval: 3000 } }
   );
   const { data: searchResults, isFetching: searchFetching } = useListUsers(
     searchTerm.trim() ? { q: searchTerm.trim() } : undefined,
