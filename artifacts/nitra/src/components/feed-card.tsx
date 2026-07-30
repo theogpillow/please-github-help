@@ -273,15 +273,38 @@ export function FeedCard({ prototype }: { prototype: Prototype }) {
           </p>
         )}
         {prototype.audioUrl && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full w-fit max-w-full pointer-events-none">
+          <div className="flex items-center gap-2.5 px-2.5 py-1.5 bg-black/40 backdrop-blur-md rounded-full w-fit max-w-[240px] pointer-events-none">
             <audio ref={audioRef} src={prototype.audioUrl} loop />
-            <Music2
-              className="h-3 w-3 text-white/70 shrink-0 animate-spin"
-              style={{ animationDuration: '3s', animationPlayState: paused ? 'paused' : 'running' }}
-            />
-            <span className="text-white text-xs truncate max-w-[160px]">
-              {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
-            </span>
+            {/* Artwork or spinning icon */}
+            {prototype.songArtworkUrl ? (
+              <div className="relative shrink-0 h-7 w-7 rounded overflow-hidden">
+                <img src={prototype.songArtworkUrl} alt="" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <Music2
+                    className="h-3 w-3 text-white animate-spin"
+                    style={{ animationDuration: '3s', animationPlayState: paused ? 'paused' : 'running' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <Music2
+                className="h-3.5 w-3.5 text-white/70 shrink-0 animate-spin"
+                style={{ animationDuration: '3s', animationPlayState: paused ? 'paused' : 'running' }}
+              />
+            )}
+            {/* Title + artist */}
+            <div className="flex flex-col min-w-0">
+              <span className="text-white text-xs font-medium leading-tight truncate">
+                {prototype.songTitle
+                  || prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '')
+                  || 'Song'}
+              </span>
+              {prototype.songArtist && (
+                <span className="text-white/55 text-[10px] leading-tight truncate">
+                  {prototype.songArtist}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
