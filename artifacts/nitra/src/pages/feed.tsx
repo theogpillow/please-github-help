@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Search, MessageSquare, Heart, Bookmark, Share2,
@@ -56,12 +56,39 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const saveMutation = useSavePrototype();
   const unsaveMutation = useUnsavePrototype();
 
+  // Auto-play when card snaps into view, pause when it leaves
+  const articleRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const article = articleRef.current;
+    const audio = audioRef.current;
+    if (!article || !prototype.audioUrl) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!audioRef.current) return;
+        if (entry.isIntersecting) {
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        } else {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+      },
+      { threshold: 0.6 },
+    );
+    observer.observe(article);
+    return () => {
+      observer.disconnect();
+      audio?.pause();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prototype.audioUrl]);
+
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
     const audio = audioRef.current;
     if (!audio) return;
     if (isPlaying) { audio.pause(); setIsPlaying(false); }
-    else { audio.play(); setIsPlaying(true); }
+    else { audio.play().then(() => setIsPlaying(true)).catch(() => {}); }
   };
 
   const handleLike = () => {
@@ -114,7 +141,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const isVideo = primaryMedia && !prototype.imageUrl && /\.(mp4|webm|mov)$/i.test(primaryMedia);
 
   return (
-    <article className="feed-snap-item relative w-full overflow-hidden bg-black select-none">
+    <article ref={articleRef} className="feed-snap-item relative w-full overflow-hidden bg-black select-none">
 
       {/* ── Full-screen background ───────────────────── */}
       <div className="absolute inset-0">

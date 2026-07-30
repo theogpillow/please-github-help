@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Audio } from 'expo-av';
 import {
   ActivityIndicator,
   Alert,
@@ -85,7 +86,15 @@ function RailBtn({
 }
 
 // ── Single TikTok card ─────────────────────────────────────────────────
-function TikTokCard({ prototype, screenHeight }: { prototype: Prototype; screenHeight: number }) {
+function TikTokCard({
+  prototype,
+  screenHeight,
+  isActive,
+}: {
+  prototype: Prototype;
+  screenHeight: number;
+  isActive: boolean;
+}) {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -93,6 +102,47 @@ function TikTokCard({ prototype, screenHeight }: { prototype: Prototype; screenH
   const [likeCount, setLikeCount] = useState(0);
   const [saved, setSaved] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Auto-play audio when this card becomes active, pause when it leaves
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!prototype.audioUrl) return;
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: prototype.audioUrl },
+          { shouldPlay: !muted, isLooping: true, volume: muted ? 0 : 1 },
+        );
+        if (cancelled) { sound.unloadAsync(); return; }
+        soundRef.current = sound;
+      } catch {}
+    };
+
+    if (isActive) {
+      load();
+    } else {
+      soundRef.current?.pauseAsync();
+      soundRef.current?.unloadAsync();
+      soundRef.current = null;
+    }
+
+    return () => {
+      cancelled = true;
+      soundRef.current?.unloadAsync();
+      soundRef.current = null;
+    };
+  // muted intentionally excluded — handled separately below
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, prototype.audioUrl]);
+
+  // Apply mute/unmute without reloading the sound
+  useEffect(() => {
+    soundRef.current?.setVolumeAsync(muted ? 0 : 1);
+  }, [muted]);
 
   const handleLike = useCallback(async () => {
     if (!user) return;
@@ -288,12 +338,25 @@ function TikTokCard({ prototype, screenHeight }: { prototype: Prototype; screenH
 
         {/* Audio strip */}
         {prototype.audioUrl ? (
-          <View style={styles.audioStrip}>
-            <Ionicons name="musical-notes" size={13} color="rgba(255,255,255,0.8)" />
+          <Pressable
+            style={styles.audioStrip}
+            onPress={() => setMuted((m) => !m)}
+            hitSlop={6}
+          >
+            <Ionicons
+              name={muted ? 'volume-mute' : 'musical-notes'}
+              size={13}
+              color="rgba(255,255,255,0.8)"
+            />
             <Text style={styles.audioText} numberOfLines={1}>
               {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
             </Text>
-          </View>
+            <Ionicons
+              name={muted ? 'pause-circle-outline' : 'pause-circle'}
+              size={13}
+              color="rgba(255,255,255,0.5)"
+            />
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -306,6 +369,16 @@ export default function FeedScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const colors = useColors();
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActiveIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
 
   // Full screen height: subtract tab bar (~83pt) and status bar on web
   const tabBarH = Platform.OS === 'web' ? 84 : 49 + insets.bottom;
@@ -356,14 +429,20 @@ export default function FeedScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <TikTokCard prototype={item} screenHeight={screenHeight} />
+        renderItem={({ item, index }) => (
+          <TikTokCard
+            prototype={item}
+            screenHeight={screenHeight}
+            isActive={index === activeIndex}
+          />
         )}
         pagingEnabled
         snapToInterval={screenHeight}
         snapToAlignment="start"
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
