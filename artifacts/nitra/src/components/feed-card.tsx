@@ -295,9 +295,7 @@ export function FeedCard({ prototype }: { prototype: Prototype }) {
             {/* Title + artist */}
             <div className="flex flex-col min-w-0">
               <span className="text-white text-xs font-medium leading-tight truncate">
-                {prototype.songTitle
-                  || prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '')
-                  || 'Song'}
+                {prototype.songTitle || 'Song'}
               </span>
               {prototype.songArtist && (
                 <span className="text-white/55 text-[10px] leading-tight truncate">
