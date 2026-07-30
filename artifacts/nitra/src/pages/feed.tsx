@@ -2,14 +2,14 @@ import { useState, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Search, MessageSquare, Heart, Bookmark, Share2,
-  Sparkles, X, ExternalLink, TrendingUp, Users, Music2, Play, Pause, Flag
+  Sparkles, X, ExternalLink, Music2, Play, Pause, Flag,
+  TrendingUp, Users
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { ReportModal } from '@/components/report-modal';
 import { FollowButton } from '@/components/follow-button';
 import { ShareModal } from '@/components/share-modal';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/user-avatar';
 import {
@@ -38,7 +38,7 @@ function getGradient(id: number) {
   return GRADIENTS[id % GRADIENTS.length];
 }
 
-function FeedCard({ prototype, index }: { prototype: Prototype; index: number }) {
+function FeedCard({ prototype }: { prototype: Prototype }) {
   const currentUser = getCurrentUser();
 
   const [liked, setLiked] = useState(prototype.isLiked ?? false);
@@ -47,6 +47,7 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [, setLocation] = useLocation();
 
@@ -105,230 +106,154 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
     }
   };
 
+  // Resolve media
+  const uploadedMedia: string[] = (() => {
+    try { return prototype.mediaUrls ? JSON.parse(prototype.mediaUrls) : []; } catch { return []; }
+  })();
+  const primaryMedia = prototype.imageUrl || uploadedMedia[0] || null;
+  const isVideo = primaryMedia && !prototype.imageUrl && /\.(mp4|webm|mov)$/i.test(primaryMedia);
+
   return (
-    <article
-      className="feed-snap-item w-full flex flex-col md:flex-row border-b border-border bg-background overflow-hidden"
-    >
-      {/* ── Left: Description ─────────────────────────── */}
-      <div className="hidden md:flex w-72 shrink-0 flex-col gap-4 p-6 bg-muted/30 border-r border-border overflow-y-auto">
-        <div>
-          <span className="text-xs font-semibold text-primary uppercase tracking-widest">
-            Prototype {String(index + 1).padStart(2, '0')}
-          </span>
-          <h2 className="text-xl font-bold mt-1 leading-tight">{prototype.title}</h2>
-        </div>
+    <article className="feed-snap-item relative w-full overflow-hidden bg-black select-none">
 
-        {prototype.category && (
-          <Badge variant="secondary" className="w-fit">{prototype.category}</Badge>
-        )}
-
-        {prototype.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {prototype.description}
-          </p>
-        )}
-
-        {/* Saved Videos button */}
-        <button
-          onClick={() => setLocation('/saved')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-fit bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
-        >
-          <Bookmark className="h-4 w-4" />
-          Saved Videos
-        </button>
-
-        {prototype.username && (
-          <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
-            <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-7 w-7" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium flex items-center gap-1">
-                @{prototype.username}
-                {prototype.creatorIsVerified && <VerifiedBadge size="sm" />}
-              </p>
-              <p className="text-xs text-muted-foreground">{formatRelativeTime(prototype.createdAt)}</p>
-            </div>
-            <FollowButton username={prototype.username} size="sm" />
-          </div>
+      {/* ── Full-screen background ───────────────────── */}
+      <div className="absolute inset-0">
+        {primaryMedia && isVideo ? (
+          <video src={primaryMedia} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+        ) : primaryMedia ? (
+          <img src={primaryMedia} alt={prototype.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${getGradient(prototype.id)}`} />
         )}
       </div>
 
-      {/* ── Center: Image / Visual ─────────────────────── */}
-      <div className="relative flex-1 overflow-hidden group">
-        {(() => {
-          // Prefer AI-generated imageUrl, then first uploaded media
-          const uploadedMedia: string[] = (() => {
-            try { return prototype.mediaUrls ? JSON.parse(prototype.mediaUrls) : []; } catch { return []; }
-          })();
-          const primaryMedia = prototype.imageUrl || uploadedMedia[0] || null;
-          const isVideo = primaryMedia && !prototype.imageUrl && /\.(mp4|webm|mov)$/i.test(primaryMedia);
+      {/* ── Gradient overlays ───────────────────────── */}
+      {/* bottom fade for text */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+      {/* top fade for nav clearance */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
 
-          if (primaryMedia && isVideo) {
-            return (
-              <video
-                src={primaryMedia}
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            );
-          }
-          if (primaryMedia) {
-            return (
-              <img
-                src={primaryMedia}
-                alt={prototype.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            );
-          }
-          return (
-            <div className={`w-full h-full bg-gradient-to-br ${getGradient(prototype.id)} flex flex-col items-center justify-center gap-4 p-8`}>
-              <Sparkles className="h-16 w-16 text-white/50" />
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{prototype.title}</p>
-                {prototype.category && (
-                  <p className="text-white/70 mt-2 text-sm">{prototype.category}</p>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Overlay gradient for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-
-        {/* Mobile info overlay at the bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 md:hidden">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-white/70 uppercase tracking-widest mb-1">
-                Prototype {String(index + 1).padStart(2, '0')}
-              </p>
-              <h2 className="text-xl font-bold text-white leading-tight">{prototype.title}</h2>
-              {prototype.category && (
-                <span className="inline-block mt-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs rounded-full">
-                  {prototype.category}
-                </span>
-              )}
-              {prototype.description && (
-                <p className="text-white/80 text-sm mt-2 line-clamp-2">{prototype.description}</p>
-              )}
-              {prototype.username && (
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  <UserAvatar username={prototype.username} avatarUrl={prototype.creatorAvatarUrl} className="h-6 w-6 ring-1 ring-white/40" />
-                  <span className="text-white text-sm font-medium flex items-center gap-1">
-                    @{prototype.username}
-                    {prototype.creatorIsVerified && <VerifiedBadge size="sm" className="text-white" showTooltip={false} />}
-                  </span>
-                  <span className="text-white/50 text-xs">· {formatRelativeTime(prototype.createdAt)}</span>
-                  <FollowButton username={prototype.username} size="sm" className="!border-white/40 !bg-white/20 !text-white hover:!bg-white/30 backdrop-blur-sm" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* View button */}
-        <Link href={`/prototype/${prototype.id}`}>
-          <button className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs font-medium rounded-full transition-colors">
-            <ExternalLink className="h-3 w-3" />
-            View
-          </button>
-        </Link>
-
-        {/* Audio player strip */}
-        {prototype.audioUrl && (
-          <>
-            <audio
-              ref={audioRef}
-              src={prototype.audioUrl}
-              loop
-              onEnded={() => setIsPlaying(false)}
+      {/* ── Right action rail (TikTok-style) ─────────── */}
+      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
+        {/* Like */}
+        <TikTokBtn
+          onClick={handleLike}
+          icon={
+            <Heart
+              className={`h-7 w-7 transition-all duration-200 ${liked ? 'fill-red-500 text-red-500 scale-110' : 'text-white'}`}
             />
-            <div className="absolute bottom-4 left-4 right-4 md:bottom-4 flex items-center gap-2 px-3 py-2 bg-black/50 backdrop-blur-md rounded-full pointer-events-auto">
-              <button
-                onClick={toggleAudio}
-                className="shrink-0 h-7 w-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                {isPlaying
-                  ? <Pause className="h-3.5 w-3.5 text-white" />
-                  : <Play className="h-3.5 w-3.5 text-white" />}
-              </button>
-              <Music2 className="h-3.5 w-3.5 text-white/70 shrink-0" />
-              <span className="text-white text-xs truncate flex-1">
-                {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ── Right: Actions ────────────────────────────── */}
-      <div className="hidden md:flex w-20 shrink-0 flex-col items-center justify-start gap-6 pt-8 pb-4 border-l border-border bg-background">
-        <ActionBtn
-          icon={<Heart className={`h-5 w-5 transition-colors ${liked ? 'fill-red-500 text-red-500' : ''}`} />}
+          }
           label={likeCount > 0 ? String(likeCount) : 'Like'}
-          active={liked}
-          onClick={handleLike}
         />
-        <ActionBtn
-          icon={<MessageSquare className="h-5 w-5" />}
-          label="Chat"
+
+        {/* Direct message */}
+        <TikTokBtn
           onClick={() => prototype.username && setLocation(`/messages?with=${prototype.username}`)}
+          icon={<MessageSquare className="h-7 w-7 text-white" />}
+          label="Chat"
         />
-        <ActionBtn
-          icon={<Bookmark className={`h-5 w-5 transition-colors ${saved ? 'fill-primary text-primary' : ''}`} />}
-          label="Save"
-          active={saved}
+
+        {/* Save */}
+        <TikTokBtn
           onClick={handleSave}
+          icon={
+            <Bookmark
+              className={`h-7 w-7 transition-all duration-200 ${saved ? 'fill-yellow-400 text-yellow-400 scale-110' : 'text-white'}`}
+            />
+          }
+          label={saved ? 'Saved' : 'Save'}
         />
-        <ActionBtn
-          icon={<Share2 className="h-5 w-5" />}
-          label="Share"
+
+        {/* Share */}
+        <TikTokBtn
           onClick={() => setShareOpen(true)}
+          icon={<Share2 className="h-7 w-7 text-white" />}
+          label="Share"
         />
-        <ActionBtn
-          icon={<Flag className="h-5 w-5" />}
-          label="Report"
-          onClick={() => setReportOpen(true)}
-        />
-      </div>
 
-      {/* Mobile horizontal action bar */}
-      <div className="md:hidden flex items-center justify-around px-4 py-2 border-t border-border bg-background/90 backdrop-blur-sm">
-        <MobileActionBtn
-          icon={<Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />}
-          label={likeCount > 0 ? String(likeCount) : 'Like'}
-          onClick={handleLike}
-        />
-        <MobileActionBtn
-          icon={<MessageSquare className="h-5 w-5" />}
-          label="Chat"
-          onClick={() => prototype.username && setLocation(`/messages?with=${prototype.username}`)}
-        />
-        <MobileActionBtn
-          icon={<Bookmark className={`h-5 w-5 ${saved ? 'fill-primary text-primary' : ''}`} />}
-          label="Save"
-          onClick={handleSave}
-        />
+        {/* View full post */}
         <Link href={`/prototype/${prototype.id}`}>
-          <MobileActionBtn
-            icon={<ExternalLink className="h-5 w-5" />}
+          <TikTokBtn
+            icon={<ExternalLink className="h-6 w-6 text-white" />}
             label="View"
           />
         </Link>
-        <MobileActionBtn
-          icon={<Share2 className="h-5 w-5" />}
-          label="Share"
-          onClick={() => setShareOpen(true)}
-        />
-        <MobileActionBtn
-          icon={<Flag className="h-5 w-5" />}
-          label="Report"
+
+        {/* Report */}
+        <TikTokBtn
           onClick={() => setReportOpen(true)}
+          icon={<Flag className="h-5 w-5 text-white/60" />}
+          label="Report"
+          small
         />
+      </div>
+
+      {/* ── Bottom-left creator info ─────────────────── */}
+      <div className="absolute bottom-0 left-0 right-20 p-4 pb-5 z-10 space-y-2">
+
+        {/* Creator row */}
+        {prototype.username && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href={`/profile/${prototype.username}`}>
+              <UserAvatar
+                username={prototype.username}
+                avatarUrl={prototype.creatorAvatarUrl}
+                className="h-9 w-9 ring-2 ring-white/50"
+              />
+            </Link>
+            <Link href={`/profile/${prototype.username}`}>
+              <span className="text-white font-semibold text-sm flex items-center gap-1 hover:underline">
+                @{prototype.username}
+                {prototype.creatorIsVerified && <VerifiedBadge size="sm" showTooltip={false} />}
+              </span>
+            </Link>
+            <FollowButton
+              username={prototype.username}
+              size="sm"
+              className="!border-white/40 !bg-white/15 !text-white hover:!bg-white/25 backdrop-blur-sm !text-xs !px-3 !h-7"
+            />
+            <span className="text-white/40 text-xs">{formatRelativeTime(prototype.createdAt)}</span>
+          </div>
+        )}
+
+        {/* Title */}
+        <h2 className="text-white font-bold text-lg leading-tight drop-shadow-md">
+          {prototype.title}
+        </h2>
+
+        {/* Category */}
+        {prototype.category && (
+          <span className="inline-block px-2.5 py-0.5 bg-white/15 backdrop-blur-sm text-white text-xs rounded-full border border-white/20">
+            {prototype.category}
+          </span>
+        )}
+
+        {/* Description */}
+        {prototype.description && (
+          <p
+            className={`text-white/80 text-sm leading-snug cursor-pointer ${descExpanded ? '' : 'line-clamp-2'}`}
+            onClick={() => setDescExpanded(v => !v)}
+          >
+            {prototype.description}
+            {!descExpanded && prototype.description.length > 80 && (
+              <span className="text-white/50 ml-1">more</span>
+            )}
+          </p>
+        )}
+
+        {/* Audio strip */}
+        {prototype.audioUrl && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full w-fit max-w-full">
+            {prototype.audioUrl && <audio ref={audioRef} src={prototype.audioUrl} loop onEnded={() => setIsPlaying(false)} />}
+            <button onClick={toggleAudio} className="shrink-0 h-6 w-6 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+              {isPlaying ? <Pause className="h-3 w-3 text-white" /> : <Play className="h-3 w-3 text-white" />}
+            </button>
+            <Music2 className="h-3 w-3 text-white/70 shrink-0 animate-spin" style={{ animationDuration: isPlaying ? '3s' : '0s', animationPlayState: isPlaying ? 'running' : 'paused' }} />
+            <span className="text-white text-xs truncate max-w-[160px]">
+              {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
+            </span>
+          </div>
+        )}
       </div>
 
       {reportOpen && (
@@ -341,36 +266,20 @@ function FeedCard({ prototype, index }: { prototype: Prototype; index: number })
   );
 }
 
-function ActionBtn({
-  icon, label, active, onClick,
+function TikTokBtn({
+  icon, label, onClick, small,
 }: {
-  icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void;
+  icon: React.ReactNode; label: string; onClick?: () => void; small?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 group transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+      className="flex flex-col items-center gap-1 group active:scale-90 transition-transform"
     >
-      <div className="p-2.5 rounded-full group-hover:bg-muted transition-colors">
+      <div className={`flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm group-hover:bg-black/50 transition-colors ${small ? 'h-10 w-10' : 'h-12 w-12'}`}>
         {icon}
       </div>
-      <span className="text-[10px] font-medium">{label}</span>
-    </button>
-  );
-}
-
-function MobileActionBtn({
-  icon, label, onClick,
-}: {
-  icon: React.ReactNode; label: string; onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center gap-0.5 text-muted-foreground hover:text-foreground transition-colors px-3 py-1"
-    >
-      {icon}
-      <span className="text-[10px] font-medium">{label}</span>
+      <span className={`text-white font-semibold drop-shadow ${small ? 'text-[9px]' : 'text-[11px]'}`}>{label}</span>
     </button>
   );
 }
@@ -453,8 +362,8 @@ export default function Feed() {
             </div>
           </div>
         ) : items.length > 0 ? (
-          items.map((proto, i) => (
-            <FeedCard key={proto.id} prototype={proto} index={i} />
+          items.map((proto) => (
+            <FeedCard key={proto.id} prototype={proto} />
           ))
         ) : (
           <div className="feed-snap-item flex flex-col items-center justify-center gap-4 text-center px-8">
