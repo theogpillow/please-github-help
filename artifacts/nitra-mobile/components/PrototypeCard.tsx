@@ -128,6 +128,25 @@ export function PrototypeCard({ prototype }: PrototypeCardProps) {
           resizeMode="cover"
         />
       ) : null}
+
+      {/* Music credit */}
+      {prototype.audioUrl ? (
+        <View style={[styles.musicPill, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+          {prototype.songArtworkUrl ? (
+            <Image source={{ uri: prototype.songArtworkUrl }} style={styles.musicArt} />
+          ) : (
+            <Ionicons name="musical-note" size={12} color={colors.primary} />
+          )}
+          <Text style={[styles.musicText, { color: colors.mutedForeground }]} numberOfLines={1}>
+            {prototype.songTitle ? (
+              <>
+                <Text style={{ color: colors.foreground, fontWeight: '600' }}>{prototype.songTitle}</Text>
+                {prototype.songArtist ? ` · ${prototype.songArtist}` : ''}
+              </>
+            ) : 'Audio track'}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -199,5 +218,27 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 9,
     borderTopWidth: 1,
+  },
+  musicPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+    maxWidth: '90%',
+  },
+  musicArt: {
+    width: 18,
+    height: 18,
+    borderRadius: 3,
+  },
+  musicText: {
+    fontSize: 12,
+    flexShrink: 1,
   },
 });

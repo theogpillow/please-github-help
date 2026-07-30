@@ -322,6 +322,9 @@ export default function PrototypeNew() {
           prompt: prompt.trim() || undefined,
           mediaUrls,
           audioUrl,
+          songTitle: selectedSong?.name,
+          songArtist: selectedSong?.artist,
+          songArtworkUrl: selectedSong?.artwork,
         },
       },
       {

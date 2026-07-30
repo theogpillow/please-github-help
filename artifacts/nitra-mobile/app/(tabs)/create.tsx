@@ -376,6 +376,9 @@ export default function CreateScreen() {
           userId: user.id,
           mediaUrls,
           audioUrl,
+          songTitle: selectedSong?.name,
+          songArtist: selectedSong?.artist,
+          songArtworkUrl: selectedSong?.artwork,
         },
       });
 

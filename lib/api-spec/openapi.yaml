@@ -810,6 +810,9 @@ components:
         imageUrl: { type: ["string", "null"] }
         mediaUrls: { type: ["string", "null"] }
         audioUrl: { type: ["string", "null"] }
+        songTitle: { type: ["string", "null"] }
+        songArtist: { type: ["string", "null"] }
+        songArtworkUrl: { type: ["string", "null"] }
         status: { type: ["string", "null"] }
         published: { type: boolean }
         category: { type: ["string", "null"] }
@@ -843,6 +846,9 @@ components:
         category: { type: string }
         mediaUrls: { type: string }
         audioUrl: { type: string }
+        songTitle: { type: string }
+        songArtist: { type: string }
+        songArtworkUrl: { type: string }
 
     PrototypePatch:
       type: object

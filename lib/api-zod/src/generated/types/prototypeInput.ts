@@ -15,4 +15,7 @@ export interface PrototypeInput {
   category?: string;
   mediaUrls?: string;
   audioUrl?: string;
+  songTitle?: string;
+  songArtist?: string;
+  songArtworkUrl?: string;
 }

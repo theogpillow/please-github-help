@@ -29,6 +29,12 @@ export interface Prototype {
   /** @nullable */
   audioUrl?: string | null;
   /** @nullable */
+  songTitle?: string | null;
+  /** @nullable */
+  songArtist?: string | null;
+  /** @nullable */
+  songArtworkUrl?: string | null;
+  /** @nullable */
   status?: string | null;
   published: boolean;
   /** @nullable */

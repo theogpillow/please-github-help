@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { Calendar, User as UserIcon } from 'lucide-react';
+import { Calendar, Music2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/user-avatar';
@@ -35,6 +35,12 @@ export function PrototypeCard({ prototype }: PrototypeCardProps) {
               {prototype.description}
             </p>
           )}
+
+          {/* Music credit pill */}
+          {prototype.audioUrl && prototype.songTitle && (
+            <MusicCreditPill prototype={prototype} />
+          )}
+
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               {prototype.username && (
@@ -52,5 +58,33 @@ export function PrototypeCard({ prototype }: PrototypeCardProps) {
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+export function MusicCreditPill({ prototype }: { prototype: Prototype }) {
+  if (!prototype.audioUrl) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-muted/60 border border-border w-fit max-w-full overflow-hidden">
+      {prototype.songArtworkUrl ? (
+        <img
+          src={prototype.songArtworkUrl}
+          alt=""
+          className="h-5 w-5 rounded shrink-0 object-cover"
+        />
+      ) : (
+        <Music2 className="h-3 w-3 text-primary shrink-0" />
+      )}
+      {prototype.songTitle ? (
+        <span className="text-xs text-muted-foreground truncate">
+          <span className="font-medium text-foreground">{prototype.songTitle}</span>
+          {prototype.songArtist && (
+            <span> · {prototype.songArtist}</span>
+          )}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">Audio track</span>
+      )}
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Sparkles, Trash2, Send, Globe, Calendar, User as UserIcon } from 'lucide-react';
+import { MusicCreditPill } from '@/components/prototype-card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,6 +150,12 @@ export default function PrototypeDetail() {
               </div>
               {prototype.description && (
                 <p className="text-lg text-muted-foreground">{prototype.description}</p>
+              )}
+              {/* Music credit */}
+              {prototype.audioUrl && (
+                <div className="mt-2">
+                  <MusicCreditPill prototype={prototype} />
+                </div>
               )}
             </div>
           </div>

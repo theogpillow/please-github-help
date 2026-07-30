@@ -13,6 +13,9 @@ export const prototypesTable = pgTable("prototypes", {
   imageUrl: text("image_url"),
   mediaUrls: text("media_urls"), // JSON array of uploaded media URLs
   audioUrl: text("audio_url"),   // Single background track
+  songTitle: text("song_title"),       // Track name from iTunes search
+  songArtist: text("song_artist"),     // Artist name from iTunes search
+  songArtworkUrl: text("song_artwork_url"), // Album art URL from iTunes
   published: boolean("published").notNull().default(false),
   status: text("status").notNull().default("approved"), // moderation status
   category: text("category"),
