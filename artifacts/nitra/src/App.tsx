@@ -14,6 +14,7 @@ import Profile from '@/pages/profile';
 import Messages from '@/pages/messages';
 import Feedback from '@/pages/feedback';
 import Saved from '@/pages/saved';
+import SavedFeed from '@/pages/saved-feed';
 import SearchPage from '@/pages/search';
 import NotFound from '@/pages/not-found';
 import AdminPage from '@/pages/admin/index';
@@ -79,6 +80,11 @@ function Router() {
         <Route path="/saved">
           <AuthGuard>
             <Saved />
+          </AuthGuard>
+        </Route>
+        <Route path="/saved/feed">
+          <AuthGuard>
+            <SavedFeed />
           </AuthGuard>
         </Route>
         <Route path="/search">

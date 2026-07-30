@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { useParams, useLocation } from 'wouter';
-import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2, Heart } from 'lucide-react';
+import { useParams, useLocation, Link } from 'wouter';
+import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2, Heart, Bookmark, Play, Grid3X3, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ import { PrototypeCard } from '@/components/prototype-card';
 import {
   useGetUser, useGetUserStats, useListUserPrototypes, useUpdateUser,
   useGetFollowCounts, useCheckFollowStatus, useFollowUser, useUnfollowUser,
+  useGetSaves, getGetSavesQueryKey,
   getGetUserQueryKey, getGetFollowCountsQueryKey, getCheckFollowStatusQueryKey,
 } from '@workspace/api-client-react';
 import { getCurrentUser, setCurrentUser, clearCurrentUser } from '@/lib/auth';
@@ -32,6 +33,11 @@ export default function Profile() {
   const { data: user, isLoading: userLoading } = useGetUser(username);
   const { data: stats, isLoading: statsLoading } = useGetUserStats(username);
   const { data: prototypes, isLoading: prototypesLoading } = useListUserPrototypes(username);
+  // Saved posts — only fetched when viewing your own profile
+  const { data: savesData, isLoading: savesLoading } = useGetSaves(
+    { userId: currentUser?.id ?? 0 },
+    { query: { enabled: !!(currentUser && user && currentUser.id === user.id), queryKey: getGetSavesQueryKey({ userId: currentUser?.id ?? 0 }) } },
+  );
   const { data: followCounts } = useGetFollowCounts(username);
   const { data: followStatus } = useCheckFollowStatus(
     username,
@@ -45,6 +51,7 @@ export default function Profile() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [bio, setBio] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -294,33 +301,140 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Prototypes Grid */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold font-serif">
-            {isOwnProfile ? 'Your Prototypes' : `${user.username}'s Prototypes`}
-          </h2>
-          {prototypesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48" />)}
-            </div>
-          ) : prototypes && prototypes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {prototypes.map((prototype, index) => (
-                <div key={prototype.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
-                  <PrototypeCard prototype={prototype} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Card className="p-12">
-              <div className="text-center space-y-2">
-                <p className="text-muted-foreground">
-                  {isOwnProfile ? "You haven't created any prototypes yet" : 'No prototypes yet'}
-                </p>
-              </div>
-            </Card>
+        {/* ── Tab switcher (own profile only shows Saved tab) ── */}
+        <div className="flex items-center gap-1 border-b border-border">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === 'posts'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Grid3X3 className="h-4 w-4" />
+            Posts
+          </button>
+          {isOwnProfile && (
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                activeTab === 'saved'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Bookmark className="h-4 w-4" />
+              Saved
+              {savesData && savesData.items.length > 0 && (
+                <span className="ml-1 text-xs bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-semibold">
+                  {savesData.items.length}
+                </span>
+              )}
+            </button>
           )}
         </div>
+
+        {/* ── Posts tab ─────────────────────────────── */}
+        {activeTab === 'posts' && (
+          <div className="space-y-4">
+            {prototypesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48" />)}
+              </div>
+            ) : prototypes && prototypes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {prototypes.map((prototype, index) => (
+                  <div key={prototype.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
+                    <PrototypeCard prototype={prototype} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-12">
+                <div className="text-center space-y-2">
+                  <p className="text-muted-foreground">
+                    {isOwnProfile ? "You haven't created any prototypes yet" : 'No prototypes yet'}
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ── Saved tab (own profile only) ──────────── */}
+        {activeTab === 'saved' && isOwnProfile && (
+          <div className="space-y-4">
+            {savesLoading ? (
+              <div className="grid grid-cols-3 gap-1">
+                {[...Array(9)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-sm" />)}
+              </div>
+            ) : savesData && savesData.items.length > 0 ? (
+              <>
+                {/* Play-all button */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {savesData.items.length} saved post{savesData.items.length !== 1 ? 's' : ''}
+                  </p>
+                  <Link href="/saved/feed">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors">
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      Play All
+                    </button>
+                  </Link>
+                </div>
+
+                {/* Instagram-style square grid */}
+                <div className="grid grid-cols-3 gap-1">
+                  {savesData.items.map(proto => {
+                    const mediaUrls: string[] = (() => {
+                      try { return proto.mediaUrls ? JSON.parse(proto.mediaUrls) : []; } catch { return []; }
+                    })();
+                    const thumb = proto.imageUrl || mediaUrls[0] || null;
+                    const gradients = [
+                      'from-violet-600 to-indigo-700', 'from-indigo-500 to-purple-700',
+                      'from-purple-600 to-pink-600', 'from-fuchsia-600 to-violet-700',
+                      'from-blue-600 to-indigo-600', 'from-emerald-500 to-teal-700',
+                    ];
+                    const grad = gradients[proto.id % gradients.length];
+                    return (
+                      <Link key={proto.id} href={`/saved/feed?start=${proto.id}`}>
+                        <div className="relative aspect-square overflow-hidden rounded-sm cursor-pointer group">
+                          {thumb ? (
+                            <img src={thumb} alt={proto.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`}>
+                              <Sparkles className="h-6 w-6 text-white/40" />
+                            </div>
+                          )}
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end p-2">
+                            <p className="text-white text-xs font-medium leading-tight line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow">
+                              {proto.title}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <Card className="p-12">
+                <div className="text-center space-y-3">
+                  <Bookmark className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                  <p className="text-muted-foreground text-sm">
+                    You haven't saved any posts yet.
+                  </p>
+                  <Link href="/feed">
+                    <button className="mt-1 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors">
+                      Browse Feed
+                    </button>
+                  </Link>
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
 
       </div>
 
