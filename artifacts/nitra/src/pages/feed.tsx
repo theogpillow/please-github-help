@@ -80,11 +80,11 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
         const a = audioRef.current;
         if (!a) return;
         if (entry.isIntersecting) {
-          // Stop whatever card was playing before
-          if (_feedCurrentAudio && _feedCurrentAudio !== a) {
-            _feedCurrentAudio.pause();
-            _feedCurrentAudio.currentTime = 0;
-          }
+          // Stop every <audio> element on the page before playing this one.
+          // Querying the DOM directly is HMR-proof — no stale module-level ref.
+          document.querySelectorAll('audio').forEach(el => {
+            if (el !== a) { el.pause(); el.currentTime = 0; }
+          });
           _feedCurrentAudio = a;
           // Only auto-play if user hasn't manually paused this card
           if (!pausedRef.current) {

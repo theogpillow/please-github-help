@@ -29,6 +29,11 @@ import { Avatar } from '@/components/Avatar';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
+// Module-level: only one sound may play at a time across ALL TikTokCard instances.
+// Storing it here means a newly-active card can stop the old card's sound
+// even before React has finished running the old card's cleanup effect.
+let _activeMobileSound: Audio.Sound | null = null;
+
 // Gradient palettes for posts with no image
 const GRADIENTS: [string, string][] = [
   ['#7c3aed', '#4338ca'],
@@ -127,14 +132,21 @@ function TikTokCard({
   }, [paused]);
 
   // Auto-play audio when this card becomes active, stop when it leaves.
-  // Unloads any previous sound first to guarantee only one plays at a time.
+  // Uses the module-level _activeMobileSound to stop the previous card's sound
+  // immediately — before React finishes running that card's cleanup effect.
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       if (!prototype.audioUrl) return;
       try {
-        // Ensure previous instance is gone before creating a new one
+        // Stop whatever was playing globally, even if it belongs to another card
+        if (_activeMobileSound && _activeMobileSound !== soundRef.current) {
+          await _activeMobileSound.stopAsync().catch(() => {});
+          await _activeMobileSound.unloadAsync().catch(() => {});
+          _activeMobileSound = null;
+        }
+        // Stop this card's own previous instance too (e.g. audioUrl changed)
         if (soundRef.current) {
           await soundRef.current.stopAsync().catch(() => {});
           await soundRef.current.unloadAsync().catch(() => {});
@@ -150,6 +162,7 @@ function TikTokCard({
         );
         if (cancelled) { sound.unloadAsync(); return; }
         soundRef.current = sound;
+        _activeMobileSound = sound;
         // Honour a pause the user may have set while the sound was loading
         if (paused) sound.pauseAsync();
       } catch {}
@@ -158,16 +171,22 @@ function TikTokCard({
     if (isActive) {
       load();
     } else {
-      soundRef.current?.stopAsync().catch(() => {});
-      soundRef.current?.unloadAsync().catch(() => {});
-      soundRef.current = null;
+      if (soundRef.current) {
+        soundRef.current.stopAsync().catch(() => {});
+        soundRef.current.unloadAsync().catch(() => {});
+        if (_activeMobileSound === soundRef.current) _activeMobileSound = null;
+        soundRef.current = null;
+      }
       setPaused(false);
     }
 
     return () => {
       cancelled = true;
-      soundRef.current?.unloadAsync().catch(() => {});
-      soundRef.current = null;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+        if (_activeMobileSound === soundRef.current) _activeMobileSound = null;
+        soundRef.current = null;
+      }
     };
   // paused intentionally excluded — handled separately in handleCardTap
   // eslint-disable-next-line react-hooks/exhaustive-deps
