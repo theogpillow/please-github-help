@@ -9,7 +9,7 @@ import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useAuth } from '@/contexts/AuthContext';
 
-function NativeTabLayout() {
+function NativeTabLayout({ isAdmin }: { isAdmin: boolean }) {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -28,11 +28,17 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
         <Label>Profile</Label>
       </NativeTabs.Trigger>
+      {isAdmin && (
+        <NativeTabs.Trigger name="admin">
+          <Icon sf={{ default: 'shield', selected: 'shield.fill' }} />
+          <Label>Admin</Label>
+        </NativeTabs.Trigger>
+      )}
     </NativeTabs>
   );
 }
 
-function ClassicTabLayout() {
+function ClassicTabLayout({ isAdmin }: { isAdmin: boolean }) {
   const colors = useColors();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -118,6 +124,19 @@ function ClassicTabLayout() {
             ),
         }}
       />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarButton: isAdmin ? undefined : () => null,
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="shield" tintColor={color} size={24} />
+            ) : (
+              <Feather name="shield" size={22} color={color} />
+            ),
+        }}
+      />
     </Tabs>
   );
 }
@@ -128,8 +147,10 @@ export default function TabLayout() {
   if (isLoading) return null;
   if (!user) return <Redirect href="/(auth)/login" />;
 
+  const isAdmin = !!user.isAdmin;
+
   if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
+    return <NativeTabLayout isAdmin={isAdmin} />;
   }
-  return <ClassicTabLayout />;
+  return <ClassicTabLayout isAdmin={isAdmin} />;
 }
