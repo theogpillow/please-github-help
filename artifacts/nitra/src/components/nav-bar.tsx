@@ -9,7 +9,15 @@ import { useQuery } from '@tanstack/react-query';
 function useUnreadCount(userId: number | undefined) {
   const { data } = useQuery<{ count: number }>({
     queryKey: ['notifications', 'unread', userId],
-    queryFn: () => fetch(`/api/notifications/unread-count?userId=${userId}`).then(r => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/notifications/unread-count?userId=${userId}`, {
+        headers: { 'x-user-id': String(userId) },
+      });
+      if (!r.ok) return { count: 0 };
+      const json: unknown = await r.json();
+      if (typeof json === 'object' && json !== null && 'count' in json) return json as { count: number };
+      return { count: 0 };
+    },
     enabled: !!userId,
     refetchInterval: 30_000,
   });

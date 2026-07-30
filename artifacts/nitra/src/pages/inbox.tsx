@@ -31,9 +31,18 @@ export default function Inbox() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
+  const authHeaders: Record<string, string> = currentUser
+    ? { 'x-user-id': String(currentUser.id) }
+    : {};
+
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['notifications', currentUser?.id],
-    queryFn: () => fetch(`/api/notifications?userId=${currentUser!.id}`).then(r => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/notifications?userId=${currentUser!.id}`, { headers: authHeaders });
+      if (!r.ok) return [];
+      const data: unknown = await r.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: !!currentUser,
     refetchInterval: 30_000,
   });
@@ -41,14 +50,17 @@ export default function Inbox() {
   const markAllRead = useMutation({
     mutationFn: () => fetch('/api/notifications/read-all', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ userId: currentUser!.id }),
     }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const markRead = useMutation({
-    mutationFn: (id: number) => fetch(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+    mutationFn: (id: number) => fetch(`/api/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: authHeaders,
+    }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
