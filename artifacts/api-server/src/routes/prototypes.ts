@@ -507,6 +507,8 @@ function mapPrototype(
     songTitle: p.songTitle,
     songArtist: p.songArtist,
     songArtworkUrl: p.songArtworkUrl,
+    audioStartTime: p.audioStartTime,
+    audioEndTime: p.audioEndTime,
     published: p.published,
     status: p.status,
     category: p.category,

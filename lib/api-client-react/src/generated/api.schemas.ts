@@ -109,6 +109,10 @@ export interface Prototype {
   /** @nullable */
   songArtworkUrl?: string | null;
   /** @nullable */
+  audioStartTime?: number | null;
+  /** @nullable */
+  audioEndTime?: number | null;
+  /** @nullable */
   status?: string | null;
   published: boolean;
   /** @nullable */
@@ -141,6 +145,8 @@ export interface PrototypeInput {
   songTitle?: string;
   songArtist?: string;
   songArtworkUrl?: string;
+  audioStartTime?: number;
+  audioEndTime?: number;
 }
 
 export interface PrototypePatch {

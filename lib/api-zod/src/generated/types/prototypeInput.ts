@@ -18,4 +18,6 @@ export interface PrototypeInput {
   songTitle?: string;
   songArtist?: string;
   songArtworkUrl?: string;
+  audioStartTime?: number;
+  audioEndTime?: number;
 }

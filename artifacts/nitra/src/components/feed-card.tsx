@@ -67,6 +67,8 @@ export function FeedCard({ prototype }: { prototype: Prototype }) {
     const audio = audioRef.current;
     if (!article || !prototype.audioUrl) return;
 
+    const startTime = prototype.audioStartTime ?? 0;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         const a = audioRef.current;
@@ -77,7 +79,11 @@ export function FeedCard({ prototype }: { prototype: Prototype }) {
             if (el !== a) { el.pause(); (el as HTMLAudioElement).currentTime = 0; }
           });
           _feedCurrentAudio = a;
-          if (!pausedRef.current) a.play().catch(() => {});
+          if (!pausedRef.current) {
+            // Seek to segment start before playing
+            a.currentTime = startTime;
+            a.play().catch(() => {});
+          }
         } else {
           a.pause();
           pausedRef.current = false;
@@ -94,7 +100,25 @@ export function FeedCard({ prototype }: { prototype: Prototype }) {
       if (_feedCurrentAudio === audio) _feedCurrentAudio = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prototype.audioUrl]);
+  }, [prototype.audioUrl, prototype.audioStartTime]);
+
+  // Loop within the chosen segment window
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !prototype.audioUrl) return;
+
+    const startTime = prototype.audioStartTime ?? 0;
+    const endTime = prototype.audioEndTime ?? null;
+    if (endTime === null && startTime === 0) return; // full-track loop — native `loop` handles it
+
+    const handleTimeUpdate = () => {
+      if (endTime !== null && audio.currentTime >= endTime) {
+        audio.currentTime = startTime;
+      }
+    };
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [prototype.audioUrl, prototype.audioStartTime, prototype.audioEndTime]);
 
   const handleCardTap = () => {
     const audio = audioRef.current;

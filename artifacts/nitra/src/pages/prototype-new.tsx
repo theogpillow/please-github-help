@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useLocation } from 'wouter';
-import { Sparkles, ImagePlus, X, Film, Music, Music2, Search, Loader2, Upload } from 'lucide-react';
+import { Sparkles, ImagePlus, X, Film, Music, Music2, Search, Loader2, Upload, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -224,6 +224,153 @@ function SongPicker({
   );
 }
 
+// ── Segment Picker ──────────────────────────────────────────────────
+function SegmentPicker({
+  audioSrc,
+  startTime,
+  endTime,
+  onChange,
+}: {
+  audioSrc: string;
+  startTime: number;
+  endTime: number | null;
+  onChange: (start: number, end: number) => void;
+}) {
+  const [duration, setDuration] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!audioSrc) return;
+    const audio = new Audio(audioSrc);
+    const onMeta = () => {
+      const d = isFinite(audio.duration) ? audio.duration : 0;
+      if (d > 0) {
+        setDuration(d);
+        // Initialise end to full duration on first load
+        onChange(startTime, endTime ?? d);
+      }
+    };
+    audio.addEventListener('loadedmetadata', onMeta);
+    audio.load();
+    return () => audio.removeEventListener('loadedmetadata', onMeta);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioSrc]);
+
+  useEffect(() => () => {
+    previewRef.current?.pause();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const start = startTime;
+  const end = endTime ?? duration;
+  const segLen = Math.max(0, end - start);
+
+  const togglePreview = () => {
+    if (previewing) {
+      previewRef.current?.pause();
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setPreviewing(false);
+      return;
+    }
+    const audio = new Audio(audioSrc);
+    audio.currentTime = start;
+    audio.play().catch(() => {});
+    previewRef.current = audio;
+    setPreviewing(true);
+    intervalRef.current = setInterval(() => {
+      if (!previewRef.current) return;
+      if (previewRef.current.ended || previewRef.current.currentTime >= end) {
+        previewRef.current.pause();
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setPreviewing(false);
+      }
+    }, 150);
+  };
+
+  if (!duration) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+        <Loader2 className="h-3 w-3 animate-spin" /> Loading audio…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 p-4 rounded-xl border border-border bg-muted/30">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium flex items-center gap-1.5">
+          <Music2 className="h-3.5 w-3.5 text-primary" />
+          Pick a segment
+        </p>
+        <span className="text-xs text-muted-foreground">
+          {fmt(segLen)} selected · full: {fmt(duration)}
+        </span>
+      </div>
+
+      {/* Visual range bar */}
+      <div className="relative h-2.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="absolute h-full rounded-full bg-primary transition-all duration-100"
+          style={{
+            left: `${(start / duration) * 100}%`,
+            width: `${(segLen / duration) * 100}%`,
+          }}
+        />
+      </div>
+
+      {/* Start slider */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground w-8 shrink-0">Start</span>
+        <input
+          type="range"
+          min={0}
+          max={duration}
+          step={1}
+          value={start}
+          onChange={e => onChange(Math.min(Number(e.target.value), end - 1), end)}
+          className="flex-1 accent-primary cursor-pointer"
+        />
+        <span className="text-xs font-mono w-12 text-right tabular-nums">{fmt(start)}</span>
+      </div>
+
+      {/* End slider */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground w-8 shrink-0">End</span>
+        <input
+          type="range"
+          min={0}
+          max={duration}
+          step={1}
+          value={end}
+          onChange={e => onChange(start, Math.max(Number(e.target.value), start + 1))}
+          className="flex-1 accent-primary cursor-pointer"
+        />
+        <span className="text-xs font-mono w-12 text-right tabular-nums">{fmt(end)}</span>
+      </div>
+
+      {/* Preview */}
+      <button
+        type="button"
+        onClick={togglePreview}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-sm font-medium transition-colors"
+      >
+        {previewing
+          ? <><Pause className="h-3.5 w-3.5" /> Stop preview</>
+          : <><Play className="h-3.5 w-3.5" /> Preview segment</>
+        }
+      </button>
+    </div>
+  );
+}
+
 const CATEGORIES = ['SaaS', 'E-commerce', 'AI/ML', 'Fintech', 'Healthcare', 'Education', 'Social', 'Other'];
 const MAX_FILES = 20;
 
@@ -246,7 +393,25 @@ export default function PrototypeNew() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [songFile, setSongFile] = useState<File | null>(null);
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
+  const [audioStartTime, setAudioStartTime] = useState(0);
+  const [audioEndTime, setAudioEndTime] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Object URL for the uploaded audio file — revoked when file changes
+  const songPreviewUrl = useMemo(
+    () => (songFile ? URL.createObjectURL(songFile) : null),
+    [songFile],
+  );
+  useEffect(() => () => { if (songPreviewUrl) URL.revokeObjectURL(songPreviewUrl); }, [songPreviewUrl]);
+
+  // The src we feed to SegmentPicker (iTunes URL or local object URL)
+  const audioSrc = selectedSong?.previewUrl ?? songPreviewUrl;
+
+  // Reset segment times whenever the audio source changes
+  useEffect(() => {
+    setAudioStartTime(0);
+    setAudioEndTime(null);
+  }, [audioSrc]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
@@ -325,6 +490,8 @@ export default function PrototypeNew() {
           songTitle: selectedSong?.name,
           songArtist: selectedSong?.artist,
           songArtworkUrl: selectedSong?.artwork,
+          audioStartTime: audioStartTime > 0 ? audioStartTime : undefined,
+          audioEndTime: audioEndTime !== null ? audioEndTime : undefined,
         },
       },
       {
@@ -439,13 +606,24 @@ export default function PrototypeNew() {
                 )}
               </div>
 
-              {/* Song picker */}
+              {/* Song picker + segment picker */}
               <div className="space-y-3">
                 <Label>Background Song</Label>
                 <SongPicker
                   songFile={songFile} setSongFile={setSongFile}
                   selectedSong={selectedSong} setSelectedSong={setSelectedSong}
                 />
+                {audioSrc && (
+                  <SegmentPicker
+                    audioSrc={audioSrc}
+                    startTime={audioStartTime}
+                    endTime={audioEndTime}
+                    onChange={(start, end) => {
+                      setAudioStartTime(start);
+                      setAudioEndTime(end);
+                    }}
+                  />
+                )}
               </div>
 
               {/* Category */}

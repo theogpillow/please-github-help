@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,8 @@ export const prototypesTable = pgTable("prototypes", {
   songTitle: text("song_title"),       // Track name from iTunes search
   songArtist: text("song_artist"),     // Artist name from iTunes search
   songArtworkUrl: text("song_artwork_url"), // Album art URL from iTunes
+  audioStartTime: real("audio_start_time"), // Segment start in seconds (null = beginning)
+  audioEndTime: real("audio_end_time"),     // Segment end in seconds (null = full track)
   published: boolean("published").notNull().default(false),
   status: text("status").notNull().default("approved"), // moderation status
   category: text("category"),
