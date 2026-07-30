@@ -2,10 +2,14 @@ import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { BlurView as ExpoBlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Redirect, Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Icon, Label, NativeTabs as ExpoNativeTabs } from 'expo-router/unstable-native-tabs';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BlurView = ExpoBlurView as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const NativeTabs = ExpoNativeTabs as any;
 import { SymbolView } from 'expo-symbols';
 import { useAuth } from '@/contexts/AuthContext';
 

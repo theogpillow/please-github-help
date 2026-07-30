@@ -31,7 +31,8 @@ const InputOTPSlot = React.forwardRef<
   React.ElementRef<'div'>,
   React.ComponentPropsWithoutRef<'div'> & { index: number }
 >(({ index, className, ...props }, ref) => {
-  const inputOTPContext = React.useContext(OTPInputContext);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inputOTPContext = React.useContext(OTPInputContext) as any;
   const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index];
 
   return (
