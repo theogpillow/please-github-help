@@ -377,7 +377,7 @@ export default function PrototypeNew() {
                   id="title"
                   data-testid="input-title"
                   type="text"
-                  placeholder="My revolutionary app idea"
+                  placeholder="My revolutionary idea"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required

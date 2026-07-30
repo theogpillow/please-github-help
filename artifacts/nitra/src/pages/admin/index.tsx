@@ -155,6 +155,7 @@ function PostsTab({ userId }: { userId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: settings } = useQuery<AppSettings>({
     queryKey: ['admin', 'settings'],
@@ -211,6 +212,15 @@ function PostsTab({ userId }: { userId: number }) {
     { label: 'Deleted', value: 'deleted' },
   ];
 
+  const filteredPosts = posts.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(q) ||
+      p.username?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-4">
       {/* Pre-moderation toggle */}
@@ -230,7 +240,27 @@ function PostsTab({ userId }: { userId: number }) {
         </CardContent>
       </Card>
 
-      {/* Filter tabs */}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by title or username…"
+          className="w-full pl-9 pr-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Status filter tabs */}
       <div className="flex gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <button
@@ -246,7 +276,7 @@ function PostsTab({ userId }: { userId: number }) {
       {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
 
       <div className="space-y-2">
-        {posts.map((p) => {
+        {filteredPosts.map((p) => {
           const media: string[] = (() => { try { return p.mediaUrls ? JSON.parse(p.mediaUrls) : []; } catch { return []; } })();
           const thumb = p.imageUrl || media[0] || null;
           return (
@@ -294,7 +324,11 @@ function PostsTab({ userId }: { userId: number }) {
             </Card>
           );
         })}
-        {!isLoading && posts.length === 0 && <p className="text-center text-muted-foreground py-8">No posts found.</p>}
+        {!isLoading && filteredPosts.length === 0 && (
+          <p className="text-center text-muted-foreground py-8">
+            {searchQuery ? `No posts matching "${searchQuery}".` : 'No posts found.'}
+          </p>
+        )}
       </div>
     </div>
   );
