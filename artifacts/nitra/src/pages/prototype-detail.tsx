@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Sparkles, Trash2, Send, Globe, Calendar, User as UserIcon } from 'lucide-react';
+import { Sparkles, Trash2, Send, Globe, Calendar, Heart } from 'lucide-react';
 import { MusicCreditPill } from '@/components/prototype-card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { UserAvatar } from '@/components/user-avatar';
-import { useGetPrototype, useGeneratePrototype, usePublishPrototype, useDeletePrototype, getGetPrototypeQueryKey } from '@workspace/api-client-react';
+import { useGetPrototype, useGeneratePrototype, usePublishPrototype, useDeletePrototype, useLikePrototype, useUnlikePrototype, getGetPrototypeQueryKey } from '@workspace/api-client-react';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
@@ -27,8 +27,43 @@ export default function PrototypeDetail() {
   const generatePrototype = useGeneratePrototype();
   const publishPrototype = usePublishPrototype();
   const deletePrototype = useDeletePrototype();
+  const likePrototype = useLikePrototype();
+  const unlikePrototype = useUnlikePrototype();
 
   const [prompt, setPrompt] = useState('');
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    if (prototype) {
+      setLikeCount(prototype.likeCount ?? 0);
+      setLiked(prototype.isLiked ?? false);
+    }
+  }, [prototype]);
+
+  const handleLike = () => {
+    if (!currentUser) return;
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => c + (next ? 1 : -1));
+    if (next) {
+      likePrototype.mutate(
+        { id: prototypeId, data: { userId: currentUser.id } },
+        {
+          onSuccess: (data) => { setLikeCount(data.likeCount); setLiked(data.isLiked); },
+          onError: () => { setLiked(false); setLikeCount((c) => c - 1); },
+        }
+      );
+    } else {
+      unlikePrototype.mutate(
+        { id: prototypeId, params: { userId: currentUser.id } },
+        {
+          onSuccess: (data) => { setLikeCount(data.likeCount); setLiked(data.isLiked); },
+          onError: () => { setLiked(true); setLikeCount((c) => c + 1); },
+        }
+      );
+    }
+  };
 
   const isOwner = currentUser && prototype && currentUser.id === prototype.userId;
 
@@ -161,7 +196,7 @@ export default function PrototypeDetail() {
           </div>
 
           {/* Meta */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
             {prototype.username && (
               <div className="flex items-center gap-2">
                 <UserAvatar username={prototype.username} className="h-6 w-6" />
@@ -172,6 +207,17 @@ export default function PrototypeDetail() {
               <Calendar className="h-4 w-4" />
               <span>{formatRelativeTime(prototype.createdAt)}</span>
             </div>
+            {/* Like button */}
+            <button
+              onClick={handleLike}
+              disabled={!currentUser}
+              className={`flex items-center gap-1.5 transition-colors ${liked ? 'text-red-500' : 'hover:text-red-400'} disabled:opacity-50 disabled:cursor-default`}
+              title={liked ? 'Unlike' : 'Like'}
+            >
+              <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
+              <span className="font-medium">{likeCount > 0 ? likeCount : ''}</span>
+              <span>{likeCount === 1 ? 'like' : likeCount > 1 ? 'likes' : 'Like'}</span>
+            </button>
           </div>
         </div>
 

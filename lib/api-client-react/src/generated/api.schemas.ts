@@ -60,6 +60,7 @@ export interface UserPatch {
 export interface UserStats {
   prototypeCount: number;
   publishedCount: number;
+  totalLikes: number;
 }
 
 export interface FollowCounts {

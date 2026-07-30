@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { Calendar, Music2 } from 'lucide-react';
+import { Calendar, Music2, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/user-avatar';
@@ -50,9 +50,17 @@ export function PrototypeCard({ prototype }: PrototypeCardProps) {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              <span>{formatRelativeTime(prototype.createdAt)}</span>
+            <div className="flex items-center gap-3">
+              {(prototype.likeCount ?? 0) > 0 && (
+                <div className="flex items-center gap-1 text-red-500">
+                  <Heart className="h-3 w-3 fill-current" />
+                  <span>{prototype.likeCount}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>{formatRelativeTime(prototype.createdAt)}</span>
+              </div>
             </div>
           </div>
         </CardContent>

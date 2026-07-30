@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2 } from 'lucide-react';
+import { Edit2, Briefcase, Calendar, UserPlus, UserCheck, Users, LogOut, Camera, Loader2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -270,6 +270,11 @@ export default function Profile() {
                       <div>
                         <span className="font-bold text-lg">{stats.publishedCount}</span>
                         <span className="text-muted-foreground ml-1">Published</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Heart className="h-4 w-4 text-red-500 fill-current" />
+                        <span className="font-bold text-lg">{stats.totalLikes}</span>
+                        <span className="text-muted-foreground ml-1">Likes</span>
                       </div>
                     </>
                   )}

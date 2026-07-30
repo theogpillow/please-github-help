@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, sql, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { db, usersTable, prototypesTable } from "@workspace/db";
+import { db, usersTable, prototypesTable, likesTable } from "@workspace/db";
 import {
   ListUsersQueryParams,
   CreateUserBody,
@@ -151,7 +151,17 @@ router.get("/users/:username/prototypes", async (req, res): Promise<void> => {
     .from(prototypesTable)
     .where(eq(prototypesTable.userId, user.id))
     .orderBy(prototypesTable.createdAt);
-  res.json(protos.map((p) => mapPrototype(p, params.data.username)));
+  const protoIds = protos.map((p) => p.id);
+  let likeCounts: Record<number, number> = {};
+  if (protoIds.length > 0) {
+    const rows = await db
+      .select({ prototypeId: likesTable.prototypeId, count: sql<number>`cast(count(*) as integer)` })
+      .from(likesTable)
+      .where(inArray(likesTable.prototypeId, protoIds))
+      .groupBy(likesTable.prototypeId);
+    likeCounts = Object.fromEntries(rows.map((r) => [r.prototypeId, r.count]));
+  }
+  res.json(protos.map((p) => mapPrototype(p, params.data.username, likeCounts[p.id] ?? 0)));
 });
 
 // User stats
@@ -169,7 +179,16 @@ router.get("/users/:username/stats", async (req, res): Promise<void> => {
   const protos = await db.select().from(prototypesTable).where(eq(prototypesTable.userId, user.id));
   const prototypeCount = protos.length;
   const publishedCount = protos.filter((p) => p.published).length;
-  res.json({ prototypeCount, publishedCount });
+  const protoIds = protos.map((p) => p.id);
+  let totalLikes = 0;
+  if (protoIds.length > 0) {
+    const [{ count }] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(likesTable)
+      .where(inArray(likesTable.prototypeId, protoIds));
+    totalLikes = count ?? 0;
+  }
+  res.json({ prototypeCount, publishedCount, totalLikes });
 });
 
 function mapUser(u: typeof usersTable.$inferSelect) {
@@ -187,7 +206,7 @@ function mapUser(u: typeof usersTable.$inferSelect) {
   };
 }
 
-function mapPrototype(p: typeof prototypesTable.$inferSelect, username?: string | null) {
+function mapPrototype(p: typeof prototypesTable.$inferSelect, username?: string | null, likeCount: number = 0) {
   return {
     id: p.id,
     userId: p.userId,
@@ -204,6 +223,7 @@ function mapPrototype(p: typeof prototypesTable.$inferSelect, username?: string 
     category: p.category,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
+    likeCount,
   };
 }
 
