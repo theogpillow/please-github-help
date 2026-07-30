@@ -367,13 +367,12 @@ export default function Feed() {
   const [searchOpen, setSearchOpen] = useState(false);
   const currentUser = getCurrentUser();
 
-  // Stop any playing audio when the user navigates away from the feed
+  // Stop any playing audio when the user navigates away from the feed.
+  // Query the DOM directly — no stale singleton to worry about.
   useEffect(() => {
     return () => {
-      if (_feedCurrentAudio) {
-        _feedCurrentAudio.pause();
-        _feedCurrentAudio = null;
-      }
+      document.querySelectorAll('audio').forEach(el => el.pause());
+      _feedCurrentAudio = null;
     };
   }, []);
   const { data: feedData, isLoading: feedLoading } = useGetFeed({

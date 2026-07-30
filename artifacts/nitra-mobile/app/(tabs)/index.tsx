@@ -442,9 +442,17 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       refetch();
-      // Return cleanup: runs when the tab loses focus — stops all card audio
+      // Cleanup runs when the tab loses focus.
+      // Stop audio directly via the module ref — don't wait for React to
+      // propagate setActiveIndex(-1) through re-renders (screen may already
+      // be unmounting by then).
       return () => {
         setActiveIndex(-1);
+        if (_activeMobileSound) {
+          _activeMobileSound.stopAsync().catch(() => {});
+          _activeMobileSound.unloadAsync().catch(() => {});
+          _activeMobileSound = null;
+        }
       };
     }, [refetch]),
   );
