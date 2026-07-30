@@ -102,7 +102,6 @@ function TikTokCard({
   const [likeCount, setLikeCount] = useState(prototype.likeCount ?? 0);
   const [saved, setSaved] = useState(prototype.isSaved ?? false);
   const [descExpanded, setDescExpanded] = useState(false);
-  const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
   const [flashIcon, setFlashIcon] = useState<'play' | 'pause' | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,44 +126,53 @@ function TikTokCard({
     flashTimer.current = setTimeout(() => setFlashIcon(null), 700);
   }, [paused]);
 
-  // Auto-play audio when this card becomes active, pause when it leaves
+  // Auto-play audio when this card becomes active, stop when it leaves.
+  // Unloads any previous sound first to guarantee only one plays at a time.
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       if (!prototype.audioUrl) return;
       try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        // Ensure previous instance is gone before creating a new one
+        if (soundRef.current) {
+          await soundRef.current.stopAsync().catch(() => {});
+          await soundRef.current.unloadAsync().catch(() => {});
+          soundRef.current = null;
+        }
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
         const { sound } = await Audio.Sound.createAsync(
           { uri: prototype.audioUrl },
-          { shouldPlay: !muted, isLooping: true, volume: muted ? 0 : 1 },
+          { shouldPlay: true, isLooping: true, volume: 1 },
         );
         if (cancelled) { sound.unloadAsync(); return; }
         soundRef.current = sound;
+        // Honour a pause the user may have set while the sound was loading
+        if (paused) sound.pauseAsync();
       } catch {}
     };
 
     if (isActive) {
       load();
     } else {
-      soundRef.current?.pauseAsync();
-      soundRef.current?.unloadAsync();
+      soundRef.current?.stopAsync().catch(() => {});
+      soundRef.current?.unloadAsync().catch(() => {});
       soundRef.current = null;
+      setPaused(false);
     }
 
     return () => {
       cancelled = true;
-      soundRef.current?.unloadAsync();
+      soundRef.current?.unloadAsync().catch(() => {});
       soundRef.current = null;
     };
-  // muted intentionally excluded — handled separately below
+  // paused intentionally excluded — handled separately in handleCardTap
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, prototype.audioUrl]);
 
-  // Apply mute/unmute without reloading the sound
-  useEffect(() => {
-    soundRef.current?.setVolumeAsync(muted ? 0 : 1);
-  }, [muted]);
 
   const handleLike = useCallback(async () => {
     if (!user) return;
@@ -371,27 +379,14 @@ function TikTokCard({
           </Pressable>
         ) : null}
 
-        {/* Audio strip */}
+        {/* Audio strip — tap the card to pause/play */}
         {prototype.audioUrl ? (
-          <Pressable
-            style={styles.audioStrip}
-            onPress={(e) => { e.stopPropagation?.(); setMuted((m) => !m); }}
-            hitSlop={6}
-          >
-            <Ionicons
-              name={muted ? 'volume-mute' : 'musical-notes'}
-              size={13}
-              color="rgba(255,255,255,0.8)"
-            />
+          <View style={styles.audioStrip} pointerEvents="none">
+            <Ionicons name="musical-notes" size={13} color="rgba(255,255,255,0.8)" />
             <Text style={styles.audioText} numberOfLines={1}>
               {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
             </Text>
-            <Ionicons
-              name={muted ? 'pause-circle-outline' : 'pause-circle'}
-              size={13}
-              color="rgba(255,255,255,0.5)"
-            />
-          </Pressable>
+          </View>
         ) : null}
       </View>
     </Pressable>

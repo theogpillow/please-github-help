@@ -188,7 +188,8 @@ export const GetUserStatsParams = zod.object({
 
 export const GetUserStatsResponse = zod.object({
   "prototypeCount": zod.number(),
-  "publishedCount": zod.number()
+  "publishedCount": zod.number(),
+  "totalLikes": zod.number()
 })
 
 

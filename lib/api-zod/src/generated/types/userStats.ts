@@ -9,4 +9,5 @@
 export interface UserStats {
   prototypeCount: number;
   publishedCount: number;
+  totalLikes: number;
 }

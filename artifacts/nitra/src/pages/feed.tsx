@@ -24,6 +24,10 @@ import { getCurrentUser } from '@/lib/auth';
 import { formatRelativeTime } from '@/lib/format';
 import type { Prototype } from '@workspace/api-client-react';
 
+// Only one audio element may play across the entire feed at a time.
+// Each card registers itself here when its IntersectionObserver fires.
+let _feedCurrentAudio: HTMLAudioElement | null = null;
+
 // Gradient backgrounds when no image is available
 const GRADIENTS = [
   'from-violet-600 to-indigo-700',
@@ -46,13 +50,14 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const [saved, setSaved] = useState(prototype.isSaved ?? false);
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
   const [flashIcon, setFlashIcon] = useState<'play' | 'pause' | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a ref in sync with state so the IntersectionObserver closure stays current
+  const pausedRef = useRef(false);
   const [, setLocation] = useLocation();
 
   const likeMutation = useLikePrototype();
@@ -60,7 +65,8 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const saveMutation = useSavePrototype();
   const unsaveMutation = useUnsavePrototype();
 
-  // Auto-play when card snaps into view, pause when it leaves
+  // Auto-play when card snaps into view, pause when it leaves.
+  // Uses a module-level singleton so only one audio ever plays at a time.
   const articleRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const article = articleRef.current;
@@ -69,16 +75,24 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!audioRef.current) return;
+        const a = audioRef.current;
+        if (!a) return;
         if (entry.isIntersecting) {
-          // Only auto-play if the user hasn't manually paused
-          if (!paused) {
-            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          // Stop whatever card was playing before
+          if (_feedCurrentAudio && _feedCurrentAudio !== a) {
+            _feedCurrentAudio.pause();
+            _feedCurrentAudio.currentTime = 0;
+          }
+          _feedCurrentAudio = a;
+          // Only auto-play if user hasn't manually paused this card
+          if (!pausedRef.current) {
+            a.play().catch(() => {});
           }
         } else {
-          audioRef.current.pause();
-          setIsPlaying(false);
-          setPaused(false); // reset pause state when card leaves view
+          a.pause();
+          pausedRef.current = false;
+          setPaused(false);
+          if (_feedCurrentAudio === a) _feedCurrentAudio = null;
         }
       },
       { threshold: 0.6 },
@@ -87,6 +101,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
     return () => {
       observer.disconnect();
       audio?.pause();
+      if (_feedCurrentAudio === audio) _feedCurrentAudio = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prototype.audioUrl]);
@@ -96,14 +111,14 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
     const audio = audioRef.current;
     const video = videoRef.current;
     const nextPaused = !paused;
+    pausedRef.current = nextPaused;
     setPaused(nextPaused);
 
     if (nextPaused) {
       audio?.pause();
       video?.pause();
-      setIsPlaying(false);
     } else {
-      audio?.play().then(() => setIsPlaying(true)).catch(() => {});
+      audio?.play().catch(() => {});
       video?.play().catch(() => {});
     }
 
@@ -111,14 +126,6 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setFlashIcon(nextPaused ? 'pause' : 'play');
     flashTimer.current = setTimeout(() => setFlashIcon(null), 700);
-  };
-
-  const toggleAudio = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) { audio.pause(); setIsPlaying(false); }
-    else { audio.play().then(() => setIsPlaying(true)).catch(() => {}); }
   };
 
   const handleLike = () => {
@@ -310,14 +317,11 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
           </p>
         )}
 
-        {/* Audio strip */}
+        {/* Audio strip — tap the card to pause/play */}
         {prototype.audioUrl && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full w-fit max-w-full">
-            {prototype.audioUrl && <audio ref={audioRef} src={prototype.audioUrl} loop onEnded={() => setIsPlaying(false)} />}
-            <button onClick={toggleAudio} className="shrink-0 h-6 w-6 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-              {isPlaying ? <Pause className="h-3 w-3 text-white" /> : <Play className="h-3 w-3 text-white" />}
-            </button>
-            <Music2 className="h-3 w-3 text-white/70 shrink-0 animate-spin" style={{ animationDuration: isPlaying ? '3s' : '0s', animationPlayState: isPlaying ? 'running' : 'paused' }} />
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full w-fit max-w-full pointer-events-none">
+            <audio ref={audioRef} src={prototype.audioUrl} loop />
+            <Music2 className="h-3 w-3 text-white/70 shrink-0 animate-spin" style={{ animationDuration: '3s', animationPlayState: paused ? 'paused' : 'running' }} />
             <span className="text-white text-xs truncate max-w-[160px]">
               {prototype.audioUrl.split('/').pop()?.replace(/^\d+-[a-z0-9]+\./, '') ?? 'Song'}
             </span>
