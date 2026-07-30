@@ -47,8 +47,12 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [flashIcon, setFlashIcon] = useState<'play' | 'pause' | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setLocation] = useLocation();
 
   const likeMutation = useLikePrototype();
@@ -67,10 +71,14 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
       ([entry]) => {
         if (!audioRef.current) return;
         if (entry.isIntersecting) {
-          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          // Only auto-play if the user hasn't manually paused
+          if (!paused) {
+            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
         } else {
           audioRef.current.pause();
           setIsPlaying(false);
+          setPaused(false); // reset pause state when card leaves view
         }
       },
       { threshold: 0.6 },
@@ -82,6 +90,28 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prototype.audioUrl]);
+
+  // Tap anywhere on the card to pause/resume both audio and video
+  const handleCardTap = () => {
+    const audio = audioRef.current;
+    const video = videoRef.current;
+    const nextPaused = !paused;
+    setPaused(nextPaused);
+
+    if (nextPaused) {
+      audio?.pause();
+      video?.pause();
+      setIsPlaying(false);
+    } else {
+      audio?.play().then(() => setIsPlaying(true)).catch(() => {});
+      video?.play().catch(() => {});
+    }
+
+    // Flash icon in center for 700 ms
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlashIcon(nextPaused ? 'pause' : 'play');
+    flashTimer.current = setTimeout(() => setFlashIcon(null), 700);
+  };
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -141,12 +171,12 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
   const isVideo = primaryMedia && !prototype.imageUrl && /\.(mp4|webm|mov)$/i.test(primaryMedia);
 
   return (
-    <article ref={articleRef} className="feed-snap-item relative w-full overflow-hidden bg-black select-none">
+    <article ref={articleRef} className="feed-snap-item relative w-full overflow-hidden bg-black select-none" onClick={handleCardTap}>
 
       {/* ── Full-screen background ───────────────────── */}
       <div className="absolute inset-0">
         {primaryMedia && isVideo ? (
-          <video src={primaryMedia} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+          <video ref={videoRef} src={primaryMedia} className="w-full h-full object-cover" autoPlay muted loop playsInline />
         ) : primaryMedia ? (
           <img src={primaryMedia} alt={prototype.title} className="w-full h-full object-cover" />
         ) : (
@@ -160,8 +190,20 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
       {/* top fade for nav clearance */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
 
+      {/* ── Tap-to-pause flash icon ──────────────────── */}
+      {flashIcon && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="flex items-center justify-center h-20 w-20 rounded-full bg-black/50 backdrop-blur-sm">
+            {flashIcon === 'pause'
+              ? <Pause className="h-9 w-9 text-white" />
+              : <Play className="h-9 w-9 text-white" />
+            }
+          </div>
+        </div>
+      )}
+
       {/* ── Right action rail (TikTok-style) ─────────── */}
-      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
+      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10" onClick={e => e.stopPropagation()}>
         {/* Like */}
         <TikTokBtn
           onClick={handleLike}
@@ -216,7 +258,7 @@ function FeedCard({ prototype }: { prototype: Prototype }) {
       </div>
 
       {/* ── Bottom-left creator info ─────────────────── */}
-      <div className="absolute bottom-0 left-0 right-20 p-4 pb-5 z-10 space-y-2">
+      <div className="absolute bottom-0 left-0 right-20 p-4 pb-5 z-10 space-y-2" onClick={e => e.stopPropagation()}>
 
         {/* Creator row */}
         {prototype.username && (

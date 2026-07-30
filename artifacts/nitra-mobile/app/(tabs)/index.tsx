@@ -103,7 +103,29 @@ function TikTokCard({
   const [saved, setSaved] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [flashIcon, setFlashIcon] = useState<'play' | 'pause' | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Respond to manual pause/play without reloading the sound
+  useEffect(() => {
+    if (!soundRef.current) return;
+    if (paused) {
+      soundRef.current.pauseAsync();
+    } else {
+      soundRef.current.playAsync();
+    }
+  }, [paused]);
+
+  // Tap on card body → toggle pause
+  const handleCardTap = useCallback(() => {
+    const next = !paused;
+    setPaused(next);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlashIcon(next ? 'pause' : 'play');
+    flashTimer.current = setTimeout(() => setFlashIcon(null), 700);
+  }, [paused]);
 
   // Auto-play audio when this card becomes active, pause when it leaves
   useEffect(() => {
@@ -233,7 +255,7 @@ function TikTokCard({
   const cardStyle = { width: SCREEN_W, height: screenHeight };
 
   return (
-    <View style={[styles.card, cardStyle]}>
+    <Pressable style={[styles.card, cardStyle]} onPress={handleCardTap}>
       {/* Background */}
       {imageUrl ? (
         <ImageBackground source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -252,6 +274,19 @@ function TikTokCard({
         style={[StyleSheet.absoluteFill, { bottom: '85%' }]}
         pointerEvents="none"
       />
+
+      {/* ── Tap-to-pause flash icon ─────────────────── */}
+      {flashIcon !== null && (
+        <View style={styles.flashOverlay} pointerEvents="none">
+          <View style={styles.flashCircle}>
+            <Ionicons
+              name={flashIcon === 'pause' ? 'pause' : 'play'}
+              size={36}
+              color="#fff"
+            />
+          </View>
+        </View>
+      )}
 
       {/* ── Right action rail ───────────────────────── */}
       <View style={styles.rail}>
@@ -340,7 +375,7 @@ function TikTokCard({
         {prototype.audioUrl ? (
           <Pressable
             style={styles.audioStrip}
-            onPress={() => setMuted((m) => !m)}
+            onPress={(e) => { e.stopPropagation?.(); setMuted((m) => !m); }}
             hitSlop={6}
           >
             <Ionicons
@@ -359,7 +394,7 @@ function TikTokCard({
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -567,6 +602,22 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
     maxWidth: 180,
+  },
+
+  // Flash icon overlay
+  flashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 15,
+  },
+  flashCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Logo overlay

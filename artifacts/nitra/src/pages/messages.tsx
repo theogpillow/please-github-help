@@ -108,7 +108,7 @@ export default function Messages() {
 
   const { data: conversations, isLoading: conversationsLoading } = useListConversations(
     currentUser ? { userId: currentUser.id } : undefined as any,
-    { query: { refetchInterval: 5000 } }
+    { query: { queryKey: getListConversationsQueryKey(currentUser ? { userId: currentUser.id } : undefined as any), refetchInterval: 5000 } }
   );
 
   // Look up the user from the ?with= param
