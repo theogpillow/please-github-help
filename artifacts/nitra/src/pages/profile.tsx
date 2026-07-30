@@ -338,23 +338,77 @@ export default function Profile() {
         {activeTab === 'posts' && (
           <div className="space-y-4">
             {prototypesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48" />)}
+              <div className="grid grid-cols-3 gap-1">
+                {[...Array(9)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-sm" />)}
               </div>
             ) : prototypes && prototypes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {prototypes.map((prototype, index) => (
-                  <div key={prototype.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
-                    <PrototypeCard prototype={prototype} />
-                  </div>
-                ))}
-              </div>
+              <>
+                {/* Play-all + count row */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {prototypes.length} post{prototypes.length !== 1 ? 's' : ''}
+                  </p>
+                  <Link href={`/profile/${username}/feed`}>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors">
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      Play All
+                    </button>
+                  </Link>
+                </div>
+
+                {/* Square thumbnail grid */}
+                <div className="grid grid-cols-3 gap-1">
+                  {prototypes.map(proto => {
+                    const mediaUrls: string[] = (() => {
+                      try { return proto.mediaUrls ? JSON.parse(proto.mediaUrls) : []; } catch { return []; }
+                    })();
+                    const thumb = proto.imageUrl || mediaUrls[0] || null;
+                    const gradients = [
+                      'from-violet-600 to-indigo-700', 'from-indigo-500 to-purple-700',
+                      'from-purple-600 to-pink-600', 'from-fuchsia-600 to-violet-700',
+                      'from-blue-600 to-indigo-600', 'from-emerald-500 to-teal-700',
+                    ];
+                    const grad = gradients[proto.id % gradients.length];
+                    return (
+                      <Link key={proto.id} href={`/profile/${username}/feed?start=${proto.id}`}>
+                        <div className="relative aspect-square overflow-hidden rounded-sm cursor-pointer group">
+                          {thumb ? (
+                            <img
+                              src={thumb}
+                              alt={proto.title}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`}>
+                              <Sparkles className="h-6 w-6 text-white/40" />
+                            </div>
+                          )}
+                          {/* Hover overlay with title */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition-colors flex items-end p-2">
+                            <p className="text-white text-xs font-medium leading-tight line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow">
+                              {proto.title}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <Card className="p-12">
-                <div className="text-center space-y-2">
-                  <p className="text-muted-foreground">
+                <div className="text-center space-y-3">
+                  <Sparkles className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                  <p className="text-muted-foreground text-sm">
                     {isOwnProfile ? "You haven't created any prototypes yet" : 'No prototypes yet'}
                   </p>
+                  {isOwnProfile && (
+                    <Link href="/prototype/new">
+                      <button className="mt-1 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors">
+                        Create Prototype
+                      </button>
+                    </Link>
+                  )}
                 </div>
               </Card>
             )}
