@@ -31,10 +31,11 @@ const { width: SCREEN_W } = Dimensions.get('window');
 let _activeMobileSound: Audio.Sound | null = null;
 
 export function stopActiveMobileSound() {
-  if (_activeMobileSound) {
-    _activeMobileSound.stopAsync().catch(() => {});
-    _activeMobileSound.unloadAsync().catch(() => {});
-    _activeMobileSound = null;
+  const s = _activeMobileSound;
+  _activeMobileSound = null;
+  if (s) {
+    s.stopAsync().catch(() => {});
+    s.unloadAsync().catch(() => {});
   }
 }
 
@@ -105,59 +106,103 @@ export function TikTokCard({
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  // Pause/resume without reloading sound
-  useEffect(() => {
-    if (!soundRef.current) return;
-    if (paused) soundRef.current.pauseAsync().catch(() => {});
-    else        soundRef.current.playAsync().catch(() => {});
-  }, [paused]);
+  // Track pause as a ref so the async load closure always sees the latest value
+  const pausedRef = useRef(false);
 
+  // ── Pause / resume (user-driven) ─────────────────────────────────────────
+  // Using a ref-based handler avoids stale-closure issues in handleCardTap.
   const handleCardTap = useCallback(() => {
-    const next = !paused;
+    const next = !pausedRef.current;
+    pausedRef.current = next;
     setPaused(next);
+
+    const s = soundRef.current;
+    if (s) {
+      if (next) s.pauseAsync().catch(() => {});
+      else      s.playAsync().catch(() => {});
+    }
+
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setFlashIcon(next ? 'pause' : 'play');
     flashTimer.current = setTimeout(() => setFlashIcon(null), 700);
-  }, [paused]);
+  }, []);
 
-  // Load / unload audio when card becomes active / inactive
+  // ── Audio load / unload ──────────────────────────────────────────────────
   useEffect(() => {
+    // ── Inactive: tear down immediately ────────────────────────
+    if (!isActive) {
+      const s = soundRef.current;
+      soundRef.current = null;
+      if (s) {
+        s.stopAsync().catch(() => {});
+        s.unloadAsync().catch(() => {});
+        if (_activeMobileSound === s) _activeMobileSound = null;
+      }
+      // Reset pause state for next time this card is shown
+      pausedRef.current = false;
+      setPaused(false);
+      return;
+    }
+
+    // ── Active: load audio ──────────────────────────────────────
+    if (!prototype.audioUrl) return;
+
+    // Synchronously evict any globally-active sound from another card
+    // BEFORE the async createAsync starts — prevents overlap.
+    const prevGlobal = _activeMobileSound;
+    _activeMobileSound = null;
+    if (prevGlobal && prevGlobal !== soundRef.current) {
+      prevGlobal.stopAsync().catch(() => {});
+      prevGlobal.unloadAsync().catch(() => {});
+    }
+    // Also evict a stale instance on this card (e.g. after fast scroll-back)
+    const prevOwn = soundRef.current;
+    soundRef.current = null;
+    if (prevOwn) {
+      prevOwn.stopAsync().catch(() => {});
+      prevOwn.unloadAsync().catch(() => {});
+    }
+
     let cancelled = false;
 
     const load = async () => {
-      if (!prototype.audioUrl) return;
       try {
-        // Stop the global active sound if it belongs to another card
-        if (_activeMobileSound && _activeMobileSound !== soundRef.current) {
-          await _activeMobileSound.stopAsync().catch(() => {});
-          await _activeMobileSound.unloadAsync().catch(() => {});
-          _activeMobileSound = null;
-        }
-        // Stop any previous instance on this card
-        if (soundRef.current) {
-          await soundRef.current.stopAsync().catch(() => {});
-          await soundRef.current.unloadAsync().catch(() => {});
-          soundRef.current = null;
-        }
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
 
         const startMs = (prototype.audioStartTime ?? 0) * 1000;
         const endMs   = prototype.audioEndTime != null ? prototype.audioEndTime * 1000 : null;
         const hasSegment = endMs !== null || startMs > 0;
 
+        // Create WITHOUT shouldPlay:true — we start it manually after setup.
+        // This prevents a brief double-play if the card is cancelled mid-load.
         const { sound } = await Audio.Sound.createAsync(
-          { uri: prototype.audioUrl },
-          { shouldPlay: true, isLooping: !hasSegment, positionMillis: startMs, volume: 1 },
+          { uri: prototype.audioUrl! },
+          {
+            shouldPlay: false,
+            isLooping: !hasSegment,
+            positionMillis: startMs,
+            volume: 1,
+          },
         );
-        if (cancelled) { sound.unloadAsync(); return; }
+
+        if (cancelled) {
+          // Card became inactive while we were loading — discard silently
+          await sound.unloadAsync().catch(() => {});
+          return;
+        }
 
         soundRef.current = sound;
         _activeMobileSound = sound;
 
-        // Segment looping: manual when segment constraints are set
+        // Segment looping: seek back to startMs when we hit the end.
+        // Guard with `status.isPlaying` so pausing near the end doesn't
+        // cause an involuntary seek/restart.
         if (hasSegment) {
           sound.setOnPlaybackStatusUpdate((status) => {
-            if (!status.isLoaded) return;
+            if (!status.isLoaded || !status.isPlaying) return;
             const pos = status.positionMillis ?? 0;
             if ((endMs !== null && pos >= endMs - 200) || status.didJustFinish) {
               sound.setPositionAsync(startMs).catch(() => {});
@@ -166,28 +211,23 @@ export function TikTokCard({
           });
         }
 
-        if (paused) sound.pauseAsync().catch(() => {});
+        // Only play if the user hasn't already tapped to pause
+        if (!pausedRef.current) {
+          await sound.playAsync().catch(() => {});
+        }
       } catch {}
     };
 
-    if (isActive) {
-      load();
-    } else {
-      if (soundRef.current) {
-        soundRef.current.stopAsync().catch(() => {});
-        soundRef.current.unloadAsync().catch(() => {});
-        if (_activeMobileSound === soundRef.current) _activeMobileSound = null;
-        soundRef.current = null;
-      }
-      setPaused(false);
-    }
+    load();
 
     return () => {
       cancelled = true;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        if (_activeMobileSound === soundRef.current) _activeMobileSound = null;
-        soundRef.current = null;
+      const s = soundRef.current;
+      soundRef.current = null;
+      if (s) {
+        s.stopAsync().catch(() => {});
+        s.unloadAsync().catch(() => {});
+        if (_activeMobileSound === s) _activeMobileSound = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,8 +272,8 @@ export function TikTokCard({
     if (!user) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert('Report Post', 'Why are you reporting this?', [
-      { text: 'Spam',         onPress: async () => { try { await apiFetch('/api/reports', { method: 'POST', body: JSON.stringify({ prototypeId: prototype.id, reporterId: user.id, reason: 'Spam' }) }); } catch {} } },
-      { text: 'Inappropriate',onPress: async () => { try { await apiFetch('/api/reports', { method: 'POST', body: JSON.stringify({ prototypeId: prototype.id, reporterId: user.id, reason: 'Inappropriate' }) }); } catch {} } },
+      { text: 'Spam',          onPress: async () => { try { await apiFetch('/api/reports', { method: 'POST', body: JSON.stringify({ prototypeId: prototype.id, reporterId: user.id, reason: 'Spam' }) }); } catch {} } },
+      { text: 'Inappropriate', onPress: async () => { try { await apiFetch('/api/reports', { method: 'POST', body: JSON.stringify({ prototypeId: prototype.id, reporterId: user.id, reason: 'Inappropriate' }) }); } catch {} } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }, [prototype.id, user]);
@@ -295,7 +335,7 @@ export function TikTokCard({
           </Pressable>
         ) : null}
 
-        {/* Audio strip — shows artwork + song title + artist */}
+        {/* Audio strip */}
         {prototype.audioUrl ? (
           <View style={styles.audioStrip} pointerEvents="none">
             {prototype.songArtworkUrl
@@ -310,6 +350,9 @@ export function TikTokCard({
                 <Text style={styles.audioArtist} numberOfLines={1}>{prototype.songArtist}</Text>
               ) : null}
             </View>
+            {paused && (
+              <Ionicons name="pause" size={12} color="rgba(255,255,255,0.6)" />
+            )}
           </View>
         ) : null}
       </View>
