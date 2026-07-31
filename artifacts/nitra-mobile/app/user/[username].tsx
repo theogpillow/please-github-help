@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,6 +12,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LinearGradient = ExpoLinearGradient as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
@@ -27,6 +32,9 @@ import type { Prototype } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar } from '@/components/Avatar';
+import { getCardGradient } from '@/components/TikTokCard';
+
+const CELL_SIZE = Dimensions.get('window').width / 3;
 
 function StatBox({ value, label, colors }: { value: number | undefined; label: string; colors: ReturnType<typeof useColors> }) {
   return (
@@ -36,11 +44,42 @@ function StatBox({ value, label, colors }: { value: number | undefined; label: s
     </View>
   );
 }
-
 const statStyles = StyleSheet.create({
   box: { alignItems: 'center', flex: 1 },
   value: { fontSize: 20, fontWeight: '700' as const },
   label: { fontSize: 12, marginTop: 2 },
+});
+
+function GridCell({ item, index, username }: { item: Prototype; index: number; username: string }) {
+  const router = useRouter();
+  const mediaUrls: string[] = (() => { try { return item.mediaUrls ? JSON.parse(item.mediaUrls) : []; } catch { return []; } })();
+  const imageUrl = item.imageUrl || mediaUrls[0] || null;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [gridStyles.cell, { opacity: pressed ? 0.85 : 1 }]}
+      onPress={() => router.push({ pathname: '/user-feed/[username]', params: { username, initialIndex: String(index) } })}
+    >
+      {imageUrl
+        ? <Image source={{ uri: imageUrl }} style={gridStyles.cellImage} resizeMode="cover" />
+        : <LinearGradient colors={getCardGradient(item.id)} style={gridStyles.cellImage} />
+      }
+      <View style={gridStyles.badges}>
+        {item.audioUrl && (
+          <View style={gridStyles.badge}><Ionicons name="musical-notes" size={9} color="#fff" /></View>
+        )}
+        {mediaUrls.length > 1 && (
+          <View style={gridStyles.badge}><Ionicons name="copy-outline" size={9} color="#fff" /></View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+const gridStyles = StyleSheet.create({
+  cell: { width: CELL_SIZE, height: CELL_SIZE, borderWidth: StyleSheet.hairlineWidth, borderColor: '#000' },
+  cellImage: { width: '100%', height: '100%' },
+  badges: { position: 'absolute', top: 4, right: 4, flexDirection: 'row', gap: 3 },
+  badge: { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, padding: 2 },
 });
 
 export default function UserProfileScreen() {
@@ -66,7 +105,6 @@ export default function UserProfileScreen() {
   const { mutateAsync: createConversation } = useCreateConversation();
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
-
   const isFollowing = followStatus?.following ?? false;
 
   const handleFollowToggle = async () => {
@@ -74,11 +112,8 @@ export default function UserProfileScreen() {
     setFollowLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      if (isFollowing) {
-        await unfollowUser({ username, data: { followerId: user.id } });
-      } else {
-        await followUser({ username, data: { followerId: user.id } });
-      }
+      if (isFollowing) { await unfollowUser({ username, data: { followerId: user.id } }); }
+      else             { await followUser({ username, data: { followerId: user.id } }); }
       await Promise.all([refetchCounts(), refetchFollowStatus()]);
     } catch {}
     setFollowLoading(false);
@@ -88,17 +123,8 @@ export default function UserProfileScreen() {
     if (!user || !profile) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const conversation = await createConversation({
-        data: { initiatorId: user.id, recipientId: profile.id },
-      });
-      router.push({
-        pathname: '/conversation/[id]',
-        params: {
-          id: conversation.id,
-          title: username,
-          otherIsVerified: profile.isVerified ? '1' : '0',
-        },
-      });
+      const conversation = await createConversation({ data: { initiatorId: user.id, recipientId: profile.id } });
+      router.push({ pathname: '/conversation/[id]', params: { id: conversation.id, title: username, otherIsVerified: profile.isVerified ? '1' : '0' } });
     } catch {}
   };
 
@@ -124,25 +150,19 @@ export default function UserProfileScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.navTitle, { color: colors.foreground }]} numberOfLines={1}>
-          @{username}
-        </Text>
+        <Text style={[styles.navTitle, { color: colors.foreground }]} numberOfLines={1}>@{username}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <FlatList
         data={publishedPrototypes}
         keyExtractor={(item) => String(item.id)}
+        numColumns={3}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.profileHeader}>
             <View style={styles.avatarRow}>
-              <Avatar
-                uri={profile?.avatarUrl}
-                username={username}
-                size={72}
-                verified={profile?.isVerified}
-              />
+              <Avatar uri={profile?.avatarUrl} username={username} size={72} verified={profile?.isVerified} />
               {!isSelf && user && (
                 <View style={styles.actions}>
                   <Pressable
@@ -150,11 +170,7 @@ export default function UserProfileScreen() {
                     disabled={followLoading}
                     style={({ pressed }) => [
                       styles.followBtn,
-                      {
-                        backgroundColor: isFollowing ? colors.secondary : colors.primary,
-                        borderColor: isFollowing ? colors.border : colors.primary,
-                        opacity: pressed || followLoading ? 0.8 : 1,
-                      },
+                      { backgroundColor: isFollowing ? colors.secondary : colors.primary, borderColor: isFollowing ? colors.border : colors.primary, opacity: pressed || followLoading ? 0.8 : 1 },
                     ]}
                   >
                     <Text style={[styles.followBtnText, { color: isFollowing ? colors.foreground : colors.primaryForeground }]}>
@@ -163,10 +179,7 @@ export default function UserProfileScreen() {
                   </Pressable>
                   <Pressable
                     onPress={handleMessage}
-                    style={({ pressed }) => [
-                      styles.msgBtn,
-                      { borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
-                    ]}
+                    style={({ pressed }) => [styles.msgBtn, { borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
                   >
                     <Ionicons name="chatbubble-outline" size={18} color={colors.foreground} />
                   </Pressable>
@@ -174,14 +187,9 @@ export default function UserProfileScreen() {
               )}
             </View>
 
-            <Text style={[styles.displayName, { color: colors.foreground }]}>
-              {profile?.companyName ?? username}
-            </Text>
+            <Text style={[styles.displayName, { color: colors.foreground }]}>{profile?.companyName ?? username}</Text>
             <Text style={[styles.handle, { color: colors.mutedForeground }]}>@{username}</Text>
-
-            {profile?.bio ? (
-              <Text style={[styles.bio, { color: colors.foreground }]}>{profile.bio}</Text>
-            ) : null}
+            {profile?.bio ? <Text style={[styles.bio, { color: colors.foreground }]}>{profile.bio}</Text> : null}
 
             <View style={[styles.statsRow, { borderColor: colors.border }]}>
               <StatBox value={stats?.publishedCount} label="Posts" colors={colors} />
@@ -192,40 +200,25 @@ export default function UserProfileScreen() {
             </View>
 
             {publishedPrototypes.length > 0 && (
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Posts</Text>
+              <View style={styles.gridHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Posts</Text>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/user-feed/[username]', params: { username } })}
+                  style={[styles.playAllBtn, { backgroundColor: colors.primary }]}
+                >
+                  <Ionicons name="play" size={12} color={colors.primaryForeground} />
+                  <Text style={[styles.playAllText, { color: colors.primaryForeground }]}>Play All</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/prototype/${item.id}`)}
-            style={({ pressed }) => [
-              styles.protoRow,
-              { borderColor: colors.border, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <View style={styles.protoRowContent}>
-              <Text style={[styles.protoTitle, { color: colors.foreground }]} numberOfLines={1}>
-                {item.title}
-              </Text>
-              {item.category ? (
-                <View style={[styles.catBadge, { backgroundColor: colors.accent }]}>
-                  <Text style={[styles.catText, { color: colors.primary }]}>{item.category}</Text>
-                </View>
-              ) : null}
-            </View>
-            {item.description ? (
-              <Text style={[styles.protoDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
-                {item.description}
-              </Text>
-            ) : null}
-          </Pressable>
+        renderItem={({ item, index }) => (
+          <GridCell item={item} index={index} username={username} />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              No published prototypes yet
-            </Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No published prototypes yet</Text>
           </View>
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
@@ -236,14 +229,7 @@ export default function UserProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
+  navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1 },
   navTitle: { fontSize: 16, fontWeight: '600' as const, flex: 1, textAlign: 'center' },
   loader: { flex: 1 },
   profileHeader: { paddingHorizontal: 20, paddingTop: 20 },
@@ -255,22 +241,12 @@ const styles = StyleSheet.create({
   displayName: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.3 },
   handle: { fontSize: 14, marginTop: 2 },
   bio: { fontSize: 14, marginTop: 10, lineHeight: 20 },
-  statsRow: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 16,
-    marginTop: 20,
-    marginBottom: 24,
-  },
+  statsRow: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, paddingVertical: 16, marginTop: 20, marginBottom: 16 },
   statDivider: { width: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '600' as const, marginBottom: 10 },
-  protoRow: { marginHorizontal: 20, marginBottom: 10, borderWidth: 1, borderRadius: 12, padding: 14 },
-  protoRowContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  protoTitle: { fontSize: 15, fontWeight: '600' as const, flex: 1, marginRight: 8 },
-  catBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
-  catText: { fontSize: 11, fontWeight: '600' as const },
-  protoDesc: { fontSize: 13, lineHeight: 18 },
+  gridHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: '600' as const },
+  playAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  playAllText: { fontSize: 12, fontWeight: '600' as const },
   empty: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 14 },
 });

@@ -9,10 +9,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 import { useGetSaves, getGetSavesQueryKey } from '@workspace/api-client-react';
 import type { Prototype } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
@@ -71,6 +70,7 @@ function SavedCard({ item }: { item: Prototype }) {
 export default function SavedScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useAuth();
 
   const savesParams = { userId: user?.id ?? 0 };
@@ -92,6 +92,15 @@ export default function SavedScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Saved</Text>
+        {items.length > 0 && (
+          <Pressable
+            onPress={() => router.push('/saved-feed')}
+            style={[styles.playAllBtn, { backgroundColor: colors.primary }]}
+          >
+            <Ionicons name="play" size={12} color="#fff" />
+            <Text style={styles.playAllText}>Play All</Text>
+          </Pressable>
+        )}
       </View>
 
       {isLoading ? (
@@ -133,7 +142,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
+  headerTitle: { fontSize: 24, fontWeight: '800', flex: 1 },
+  playAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginLeft: 12 },
+  playAllText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '600' },
   emptySubtitle: { fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },

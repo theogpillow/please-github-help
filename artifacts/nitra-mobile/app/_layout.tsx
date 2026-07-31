@@ -40,6 +40,9 @@ function RootLayoutNav() {
       <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
       <Stack.Screen name="conversation/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="search" options={{ headerShown: false }} />
+      <Stack.Screen name="user-feed/[username]" options={{ headerShown: false }} />
+      <Stack.Screen name="saved-feed" options={{ headerShown: false }} />
+      <Stack.Screen name="feedback" options={{ headerShown: false }} />
     </Stack>
   );
 }

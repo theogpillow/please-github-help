@@ -54,6 +54,192 @@ interface SelectedSong {
 
 const CATEGORIES = ['Software', 'Hardware', 'AI', 'Social', 'Fintech', 'Health', 'Other'];
 
+// ── Segment Picker ───────────────────────────────────────────────────────────
+const THUMB_SIZE = 22;
+
+function TrackSlider({
+  value, min, max, onChange, colors,
+}: {
+  value: number; min: number; max: number;
+  onChange: (v: number) => void; colors: ReturnType<typeof useColors>;
+}) {
+  const [trackW, setTrackW] = useState(0);
+  const pct = trackW > 0 ? Math.max(0, Math.min(1, (value - min) / Math.max(1, max - min))) : 0;
+  const fillW = pct * trackW;
+  const thumbLeft = Math.max(0, Math.min(trackW - THUMB_SIZE, fillW - THUMB_SIZE / 2));
+
+  const handle = (x: number) => {
+    if (trackW <= 0) return;
+    const ratio = Math.max(0, Math.min(1, x / trackW));
+    onChange(Math.round(min + ratio * (max - min)));
+  };
+
+  return (
+    <View
+      style={{ flex: 1, height: THUMB_SIZE, justifyContent: 'center', marginHorizontal: 4 }}
+      onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => true}
+      onResponderGrant={(e) => handle(e.nativeEvent.locationX)}
+      onResponderMove={(e) => handle(e.nativeEvent.locationX)}
+    >
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.muted, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: fillW, backgroundColor: colors.primary }} />
+      </View>
+      {trackW > 0 && (
+        <View style={{
+          position: 'absolute', left: thumbLeft,
+          width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: THUMB_SIZE / 2,
+          backgroundColor: colors.primary,
+          elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2,
+        }} />
+      )}
+    </View>
+  );
+}
+
+function SegmentPicker({
+  audioUrl, startTime, endTime, onChange, colors,
+}: {
+  audioUrl: string; startTime: number; endTime: number | null;
+  onChange: (start: number, end: number) => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [duration, setDuration] = useState(0);
+  const [barW, setBarW] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
+  const previewRef = useRef<InstanceType<typeof Audio.Sound> | null>(null);
+
+  // Load duration
+  useEffect(() => {
+    if (!audioUrl) return;
+    let sound: InstanceType<typeof Audio.Sound> | null = null;
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const result = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
+        sound = result.sound;
+        const status = result.status;
+        if (status.isLoaded && status.durationMillis) {
+          const d = status.durationMillis / 1000;
+          setDuration(d);
+          onChange(startTime, endTime ?? d);
+        }
+        await sound.unloadAsync();
+        sound = null;
+      } catch {}
+    })();
+    return () => { sound?.unloadAsync().catch(() => {}); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioUrl]);
+
+  useEffect(() => () => { previewRef.current?.unloadAsync().catch(() => {}); }, []);
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+  };
+
+  const start = startTime;
+  const end = endTime ?? duration;
+  const segLen = Math.max(0, end - start);
+
+  const togglePreview = async () => {
+    if (previewing) {
+      await previewRef.current?.stopAsync().catch(() => {});
+      await previewRef.current?.unloadAsync().catch(() => {});
+      previewRef.current = null; setPreviewing(false); return;
+    }
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: true, positionMillis: start * 1000 });
+      previewRef.current = sound; setPreviewing(true);
+      const endMs = end * 1000;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+        if ((status.positionMillis ?? 0) >= endMs - 200 || status.didJustFinish) {
+          sound.stopAsync().catch(() => {}); setPreviewing(false);
+        }
+      });
+    } catch {}
+  };
+
+  if (!duration) {
+    return (
+      <View style={segStyles.loading}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[segStyles.loadingText, { color: colors.mutedForeground }]}>Loading audio…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[segStyles.container, { borderColor: colors.border, backgroundColor: colors.card }]}>
+      <View style={segStyles.topRow}>
+        <Text style={[segStyles.title, { color: colors.foreground }]}>Pick a segment</Text>
+        <Text style={[segStyles.meta, { color: colors.mutedForeground }]}>
+          {fmt(segLen)} of {fmt(duration)}
+        </Text>
+      </View>
+
+      {/* Visual range bar */}
+      <View
+        style={[segStyles.rangeBar, { backgroundColor: colors.muted }]}
+        onLayout={(e) => setBarW(e.nativeEvent.layout.width)}
+      >
+        {barW > 0 && (
+          <View style={{
+            position: 'absolute',
+            left: (start / duration) * barW,
+            width: (segLen / duration) * barW,
+            top: 0, bottom: 0,
+            backgroundColor: colors.primary, borderRadius: 4,
+          }} />
+        )}
+      </View>
+
+      {/* Start slider */}
+      <View style={segStyles.sliderRow}>
+        <Text style={[segStyles.sliderLabel, { color: colors.mutedForeground }]}>Start</Text>
+        <TrackSlider value={start} min={0} max={Math.max(0, Math.floor(end) - 1)} onChange={(v) => onChange(v, end)} colors={colors} />
+        <Text style={[segStyles.sliderTime, { color: colors.foreground }]}>{fmt(start)}</Text>
+      </View>
+
+      {/* End slider */}
+      <View style={segStyles.sliderRow}>
+        <Text style={[segStyles.sliderLabel, { color: colors.mutedForeground }]}>End</Text>
+        <TrackSlider value={end} min={Math.ceil(start) + 1} max={duration} onChange={(v) => onChange(start, v)} colors={colors} />
+        <Text style={[segStyles.sliderTime, { color: colors.foreground }]}>{fmt(end)}</Text>
+      </View>
+
+      {/* Preview */}
+      <Pressable
+        onPress={togglePreview}
+        style={({ pressed }) => [segStyles.previewBtn, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
+      >
+        <Ionicons name={previewing ? 'stop-circle-outline' : 'play-circle-outline'} size={18} color={colors.primary} />
+        <Text style={[segStyles.previewBtnText, { color: colors.foreground }]}>
+          {previewing ? 'Stop preview' : 'Preview segment'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const segStyles = StyleSheet.create({
+  loading: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
+  loadingText: { fontSize: 13 },
+  container: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 14, fontWeight: '600' },
+  meta: { fontSize: 12 },
+  rangeBar: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  sliderLabel: { width: 32, fontSize: 12 },
+  sliderTime: { width: 36, fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', textAlign: 'right' },
+  previewBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, alignSelf: 'flex-start' },
+  previewBtnText: { fontSize: 13, fontWeight: '500' },
+});
+
 // ── SongPicker ───────────────────────────────────────────────────────────────
 function SongPicker({
   selected,
@@ -257,7 +443,15 @@ export default function CreateScreen() {
   const [prompt, setPrompt] = useState('');
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
+  const [audioStartTime, setAudioStartTime] = useState(0);
+  const [audioEndTime, setAudioEndTime] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Reset segment times when song changes
+  useEffect(() => {
+    setAudioStartTime(0);
+    setAudioEndTime(null);
+  }, [selectedSong?.previewUrl]);
 
   const { mutateAsync: createPrototype, isPending: isCreating } = useCreatePrototype();
   const { mutateAsync: publishPrototype, isPending: isPublishing } = usePublishPrototype();
@@ -379,6 +573,8 @@ export default function CreateScreen() {
           songTitle: selectedSong?.name,
           songArtist: selectedSong?.artist,
           songArtworkUrl: selectedSong?.artwork,
+          audioStartTime: selectedSong?.previewUrl ? audioStartTime : undefined,
+          audioEndTime: selectedSong?.previewUrl && audioEndTime != null ? audioEndTime : undefined,
         },
       });
 
@@ -514,6 +710,17 @@ export default function CreateScreen() {
             onClear={() => setSelectedSong(null)}
             colors={colors}
           />
+          {selectedSong?.previewUrl && (
+            <View style={{ marginTop: 12 }}>
+              <SegmentPicker
+                audioUrl={selectedSong.previewUrl}
+                startTime={audioStartTime}
+                endTime={audioEndTime}
+                onChange={(s, e) => { setAudioStartTime(s); setAudioEndTime(e); }}
+                colors={colors}
+              />
+            </View>
+          )}
         </View>
 
         {/* Category */}
